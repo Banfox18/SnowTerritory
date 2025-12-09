@@ -1,4 +1,39 @@
 package top.arctain.snowTerritory.commands;
 
-public class EditCommand {
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import top.arctain.snowTerritory.Main;
+import top.arctain.snowTerritory.config.PluginConfig;
+import top.arctain.snowTerritory.gui.ItemEditorGUI;
+
+public class EditCommand implements CommandExecutor {
+
+    private final Main plugin;
+    private final PluginConfig config;
+    private final ItemEditorGUI gui;
+
+    public EditCommand(Main plugin, PluginConfig config) {
+        this.plugin = plugin;
+        this.config = config;
+        this.gui = new ItemEditorGUI(config);
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("此命令仅限玩家使用！");
+            return true;
+        }
+
+        Player player = (Player) sender;
+        if (!player.hasPermission("mmoitemseditor.edit") && !player.isOp()) {
+            player.sendMessage("您没有权限！");
+            return true;
+        }
+
+        gui.openGUI(player);
+        return true;
+    }
 }

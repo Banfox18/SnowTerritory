@@ -1,0 +1,225 @@
+# SnowTerritory 配置文件
+# MMOItems 强化编辑插件
+
+# ============================================
+# 强化系统配置
+# ============================================
+reinforce:
+  # 失败时降级概率 (0.0-1.0)
+  fail-degrade-chance: 0.3
+  
+  # 维持不变概率 (0.0-1.0)
+  maintain-chance: 0.2
+  
+  # 成功时属性增加百分比 (例如: 1.1 表示 +10%)
+  attribute-boost-percent: 1.1
+  
+  # 失败时属性减少百分比 (例如: 0.9 表示 -10%)
+  attribute-reduce-percent: 0.9
+  
+  # 不同等级的成功概率 (0.0-1.0)
+  success-rates:
+    level-0: 0.9   # 0级升1级: 90%
+    level-1: 0.8   # 1级升2级: 80%
+    level-2: 0.7   # 2级升3级: 70%
+    level-3: 0.6   # 3级升4级: 60%
+    level-4: 0.5   # 4级升5级: 50%
+    level-5: 0.4   # 5级升6级: 40%
+    level-6: 0.3   # 6级升7级: 30%
+    level-7: 0.25  # 7级升8级: 25%
+    level-8: 0.2   # 8级升9级: 20%
+    level-9: 0.15  # 9级升10级: 15%
+    level-10: 0.1  # 10级及以上: 10%
+  
+  # 可强化物品列表 (基于物品名称或Lore匹配)
+  # 如果列表为空，则允许所有MMOItems物品强化
+  reinforceable-items:
+    - "剑"
+    - "刀"
+    - "武器"
+    - "Weapon"
+  
+  # 消耗配置
+  cost:
+    # Vault金币消耗 (设置为0禁用)
+    vault-gold: 1000
+    
+    # PlayerPoints点券消耗 (设置为0禁用)
+    player-points: 50
+    
+    # 所需材料数量 (检查GUI中的6个材料槽位)
+    materials: 6
+
+# ============================================
+# GUI界面配置
+# ============================================
+gui:
+  # GUI标题
+  title: "&6&lMMO物品强化"
+  
+  # GUI大小 (必须是9的倍数，如9, 18, 27, 36, 45, 54)
+  size: 54
+  
+  # 槽位配置 (0-53)
+  slots:
+    # 武器槽位 (放置要强化的物品)
+    weapon: 10
+    
+    # 保护符槽位 (防止失败降级)
+    protect-charm: 12
+    
+    # 强化符槽位 (提升成功率)
+    enhance-charm: 14
+    
+    # 材料槽位 (6个槽位)
+    materials:
+      1: 28
+      2: 29
+      3: 30
+      4: 37
+      5: 38
+      6: 39
+    
+    # 确认按钮槽位
+    confirm: 22
+    
+    # 取消按钮槽位
+    cancel: 40
+  
+  # 按钮名称 (支持颜色代码 &)
+  confirm-button: "&a&l确认强化"
+  cancel-button: "&c&l取消"
+  
+  # 自定义槽位 (装饰用，支持16进制颜色 &x&F&F&0&0&0&0)
+  # 格式: 槽位号: { material: 材料, name: 显示名称 }
+  custom-slots:
+    0:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    1:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    2:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    3:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    4:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    5:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    6:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    7:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    8:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    9:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    11:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    13:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    15:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    16:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    17:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    18:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    19:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    20:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    21:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    23:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    24:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    25:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    26:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    27:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    31:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    32:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    33:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    34:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    35:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    36:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    41:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    42:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    43:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    44:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    45:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    46:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    47:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    48:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    49:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    50:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    51:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    52:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+    53:
+      material: "BLACK_STAINED_GLASS_PANE"
+      name: "&r"
+
