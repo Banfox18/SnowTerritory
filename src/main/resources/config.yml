@@ -31,13 +31,12 @@ reinforce:
     level-9: 0.15  # 9级升10级: 15%
     level-10: 0.1  # 10级及以上: 10%
   
-  # 可强化物品列表 (基于物品名称或Lore匹配)
+  # 可强化物品列表 (基于MMOItems物品ID匹配，需要精确匹配)
   # 如果列表为空，则允许所有MMOItems物品强化
+  # 示例: 如果MMOItems物品ID为 "MY_SWORD"，则配置为 "MY_SWORD"
   reinforceable-items:
-    - "剑"
-    - "刀"
-    - "武器"
-    - "Weapon"
+    - "MY_SWORD"
+    - "MY_WEAPON"
   
   # 消耗配置
   cost:
