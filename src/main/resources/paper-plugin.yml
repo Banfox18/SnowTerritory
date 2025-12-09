@@ -1,0 +1,8 @@
+name: SnowTerritory
+version: '1.0-SNAPSHOT'
+main: top.arctain.snowTerritory.SnowTerritory
+api-version: '1.21'
+authors: [ Arctain ]
+description:
+  Author QQ: 1546025015
+website: www.arctain.top
