@@ -231,6 +231,14 @@ gui:
 #   - 传统颜色代码: &0-&9, &a-&f, &k-&r, &l-&o
 #   - 16进制颜色: &{#FFFFFF} 或 <#FFFFFF>
 #     示例: &{#FF0000} (红色), <#00FF00> (绿色)
+#   - 渐变颜色:
+#     * 标准格式: <GRADIENT:#FF6600:#FF6600>Text</GRADIENT> 或 <g:#1f2fa6:#91c8ff>Text</g>
+#     * 自定义格式: {#314eb5>}Text{#8fdaff<}
+#     * 多层渐变: {#314eb5>}Text1{#c294ff<>} Text2{#8fdaff<}
+#     示例: 
+#       - <GRADIENT:#FF0000:#0000FF>Gradient Text</GRADIENT> (红到蓝渐变)
+#       - {#FF0000>}Hello{#0000FF<} (红到蓝渐变)
+#       - {#FF0000>}First{#00FF00<>} Second{#0000FF<} (三色渐变)
 # 
 # 支持占位符: {占位符名} 会被自动替换为实际值
 # 
@@ -245,7 +253,7 @@ gui:
 # ============================================
 messages:
   # 消息前缀 (所有带前缀的消息都会使用这个前缀)
-  prefix: "&8[&6SnowTerritory&8]&r "
+  prefix: "&{#4a95ff}ST <g:#C97759:#C9AE59>Strengthen</g> &{#4a95ff}&l>&{#99c2ff}&l>&{#ffffff}&l> "
   
   # 命令相关消息
   command:
