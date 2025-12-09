@@ -1,6 +1,5 @@
 package top.arctain.snowTerritory.listeners;
 
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -12,6 +11,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import top.arctain.snowTerritory.config.PluginConfig;
 import top.arctain.snowTerritory.gui.ItemEditorGUI;
+import top.arctain.snowTerritory.utils.ColorUtils;
 import top.arctain.snowTerritory.utils.MessageUtils;
 
 import java.util.Arrays;
@@ -34,8 +34,8 @@ public class GUIListener implements Listener {
         Inventory inv = event.getInventory();
 
         // 检查是否为我们的GUI（使用 InventoryView 获取标题）
-        String title = ChatColor.stripColor(view.getTitle());
-        String configTitle = ChatColor.stripColor(config.getGuiTitle());
+        String title = ColorUtils.stripColor(view.getTitle());
+        String configTitle = ColorUtils.stripColor(config.getGuiTitle());
         
         if (!title.equals(configTitle)) {
             return;
@@ -61,9 +61,9 @@ public class GUIListener implements Listener {
         ItemMeta meta = clicked.getItemMeta();
         if (meta == null || !meta.hasDisplayName()) return;
         
-        String itemName = ChatColor.stripColor(meta.getDisplayName());
-        String confirmName = ChatColor.stripColor(config.getGuiConfirmButtonName());
-        String cancelName = ChatColor.stripColor(config.getGuiCancelButtonName());
+        String itemName = ColorUtils.stripColor(meta.getDisplayName());
+        String confirmName = ColorUtils.stripColor(config.getGuiConfirmButtonName());
+        String cancelName = ColorUtils.stripColor(config.getGuiCancelButtonName());
 
         if (itemName.equals(confirmName)) {
             guiHandler.applyReinforce(player, inv);
@@ -83,8 +83,8 @@ public class GUIListener implements Listener {
         Inventory inv = event.getInventory();
 
         // 检查是否为我们的GUI（使用 InventoryView 获取标题）
-        String title = ChatColor.stripColor(view.getTitle());
-        String configTitle = ChatColor.stripColor(config.getGuiTitle());
+        String title = ColorUtils.stripColor(view.getTitle());
+        String configTitle = ColorUtils.stripColor(config.getGuiTitle());
         
         if (title.equals(configTitle)) {
             // 关闭GUI时，将物品返还给玩家（可选功能）
