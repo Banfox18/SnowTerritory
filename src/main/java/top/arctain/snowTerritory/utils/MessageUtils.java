@@ -277,10 +277,10 @@ public class MessageUtils {
         String title = getMessage("item.info-title", "物品信息");
         sendRaw(player, title);
         sendSeparator(player);
-        String typeMsg = getMessage("item.info-type", "&6物品类型: &f{type}", "type", type);
-        sendRaw(player, typeMsg);
-        String idMsg = getMessage("item.info-id", "&6物品 ID: &e&l{id}", "id", id);
-        sendRaw(player, idMsg);
+        String typeMsg = getMessage("item.info-type", "&6类型: &f{type}", "type", type);
+        sendMessage(player, typeMsg);
+        String idMsg = getMessage("item.info-id", "&6 ID: &e&l{id}", "id", id);
+        sendMessage(player, idMsg);
         sendSeparator(player);
     }
 

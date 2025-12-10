@@ -35,26 +35,25 @@ reinforce:
   # 如果列表为空，则允许所有MMOItems物品强化
   # 示例: 如果MMOItems物品ID为 "MY_SWORD"，则配置为 "MY_SWORD"
   reinforceable-items:
-    - "MY_SWORD"
-    - "MY_WEAPON"
+    - "弓箭手1"
   
   # 消耗配置
   cost:
     # Vault金币消耗 (设置为0禁用)
-    vault-gold: 1000
+    vault-gold: 0
     
     # PlayerPoints点券消耗 (设置为0禁用)
-    player-points: 50
+    player-points: 0
     
     # 所需材料数量 (检查GUI中的6个材料槽位)
-    materials: 6
+    materials: 0
 
 # ============================================
 # GUI界面配置
 # ============================================
 gui:
   # GUI标题
-  title: "&6&lMMO物品强化"
+  title: "ST Reinforce"
   
   # GUI大小 (必须是9的倍数，如9, 18, 27, 36, 45, 54)
   size: 54
@@ -315,10 +314,10 @@ messages:
     info-title: "物品信息"
     # 物品类型显示
     # 占位符: {type} - 物品类型 (如: "SWORD", "AXE", "BOW")
-    info-type: "&6物品类型: &f{type}"
+    info-type: "&6类型: &f{type}"
     # 物品ID显示
     # 占位符: {id} - MMOItems物品的唯一标识符
-    info-id: "&6物品 ID: &e&l{id}"
+    info-id: "&6 ID: &e&l{id}"
     
   # 帮助信息
   help:
