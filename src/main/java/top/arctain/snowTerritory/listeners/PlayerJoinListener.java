@@ -49,15 +49,18 @@ public class PlayerJoinListener implements Listener {
         String buildDate = getBuildDate();
         
         // 构建消息
+        String separator = "<g:#FFFFFF:#4A95FF>═════════════════════════</g>";
+        
+        // 内容部分
         String[] lines = {
             "",
-            "&{#4a95ff}═════════════════════════",
-            "&{#99c2ff}  &{#ffffff}欢迎您使用 &{#4a95ff}&l雪域插件&r &{#ffffff}!",
-            "&{#99c2ff}  &{#ffffff}当前版本: &{#4a95ff}" + version,
-            "&{#99c2ff}  &{#ffffff}构建日期: &{#4a95ff}" + buildDate,
-            "&{#99c2ff}  &{#ffffff}插件作者: &{#4a95ff}Arctain",
-            "&{#99c2ff}  &{#ffffff}作者QQ: &{#4a95ff}1546025015",
-            "&{#4a95ff}═════════════════════════",
+            separator,
+            "&{#99c2ff}  欢迎您使用 <g:#FFFFFF:#4A95FF>&l雪域插件</g> &{#ffffff}!",
+            "&{#99c2ff}  当前版本: <g:#FFFFFF:#4A95FF>" + version + "</g>",
+            "&{#99c2ff}  构建日期: <g:#FFFFFF:#4A95FF>" + buildDate + "</g>",
+            "&{#99c2ff}  插件作者: <g:#FFFFFF:#4A95FF>Arctain</g>",
+            "&{#99c2ff}  作者QQ: <g:#FFFFFF:#4A95FF>1546025015</g>",
+            separator,
             ""
         };
         
