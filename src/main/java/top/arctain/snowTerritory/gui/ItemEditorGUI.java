@@ -178,7 +178,7 @@ public class ItemEditorGUI {
         if (confirmMeta == null) return;
 
         List<String> lore = new ArrayList<>();
-        lore.add(MessageUtils.colorize("&7点击确认强化"));
+        lore.add(MessageUtils.colorize(config.getConfirmButtonLoreClickHint()));
 
         // 获取槽位物品
         ItemStack weapon = gui.getItem(config.getSlotWeapon());
@@ -205,23 +205,39 @@ public class ItemEditorGUI {
             double maintainChance = config.getReinforceMaintainChance();
             double totalFailRate = 1.0 - successRate; // 总失败率（包括降级和维持）
             
-            lore.add(""); // 空行分隔
-            lore.add(MessageUtils.colorize("&8━━━━━━━━━━━━━━━━━━━━"));
-            lore.add(MessageUtils.colorize("&7当前等级: &e+" + currentLevel + " &7→ &a+" + nextLevel));
-            lore.add(MessageUtils.colorize("&7成功率: &a" + String.format("%.1f", successRate * 100) + "%"));
-            lore.add(MessageUtils.colorize("&7失败率: &c" + String.format("%.1f", totalFailRate * 100) + "%"));
+            lore.add(MessageUtils.colorize(config.getConfirmButtonLoreSeparator()));
+            
+            // 当前等级
+            String currentLevelText = config.getConfirmButtonLoreCurrentLevel()
+                .replace("{currentLevel}", String.valueOf(currentLevel))
+                .replace("{nextLevel}", String.valueOf(nextLevel));
+            lore.add(MessageUtils.colorize(currentLevelText));
+            
+            // 成功率
+            String successRateText = config.getConfirmButtonLoreSuccessRate()
+                .replace("{successRate}", String.format("%.1f", successRate * 100));
+            lore.add(MessageUtils.colorize(successRateText));
+            
+            // 失败率
+            String failRateText = config.getConfirmButtonLoreFailRate()
+                .replace("{failRate}", String.format("%.1f", totalFailRate * 100));
+            lore.add(MessageUtils.colorize(failRateText));
             
             // 如果有保护符，显示保护信息
             if (protectCharm != null) {
-                lore.add(MessageUtils.colorize("&7&o失败时不会降级"));
+                lore.add(MessageUtils.colorize(config.getConfirmButtonLoreProtectCharmHint()));
             } else if (failDegradeChance > 0) {
                 // 显示失败降级概率
-                lore.add(MessageUtils.colorize("&7&o失败降级概率: &c" + String.format("%.1f", failDegradeChance * 100) + "%"));
+                String failDegradeText = config.getConfirmButtonLoreFailDegradeChance()
+                    .replace("{chance}", String.format("%.1f", failDegradeChance * 100));
+                lore.add(MessageUtils.colorize(failDegradeText));
             }
             
             // 如果有强化符，显示加成信息
             if (enhanceCharm != null) {
-                lore.add(MessageUtils.colorize("&7&o强化符加成: &a+10%"));
+                String enhanceCharmText = config.getConfirmButtonLoreEnhanceCharmHint()
+                    .replace("{bonus}", "10");
+                lore.add(MessageUtils.colorize(enhanceCharmText));
             }
             
             // 显示消耗资源
@@ -229,12 +245,18 @@ public class ItemEditorGUI {
             if (economy != null && config.getCostVaultGold() > 0) {
                 double balance = getBalance(player);
                 String color = balance >= config.getCostVaultGold() ? "&a" : "&c";
-                costLines.add(MessageUtils.colorize("&7金币: " + color + MessageUtils.formatNumber(config.getCostVaultGold())));
+                String goldText = config.getConfirmButtonLoreCostGold()
+                    .replace("{color}", color)
+                    .replace("{amount}", MessageUtils.formatNumber(config.getCostVaultGold()));
+                costLines.add(MessageUtils.colorize(goldText));
             }
             if (playerPointsAPI != null && config.getCostPlayerPoints() > 0) {
                 int points = getPlayerPoints(player.getUniqueId());
                 String color = points >= config.getCostPlayerPoints() ? "&a" : "&c";
-                costLines.add(MessageUtils.colorize("&7点券: " + color + MessageUtils.formatNumber(config.getCostPlayerPoints())));
+                String pointsText = config.getConfirmButtonLoreCostPoints()
+                    .replace("{color}", color)
+                    .replace("{amount}", MessageUtils.formatNumber(config.getCostPlayerPoints()));
+                costLines.add(MessageUtils.colorize(pointsText));
             }
             if (config.getCostMaterials() > 0) {
                 int materialCount = 0;
@@ -245,13 +267,17 @@ public class ItemEditorGUI {
                     }
                 }
                 String color = materialCount >= config.getCostMaterials() ? "&a" : "&c";
-                costLines.add(MessageUtils.colorize("&7材料: " + color + materialCount + "&7/" + config.getCostMaterials()));
+                String materialsText = config.getConfirmButtonLoreCostMaterials()
+                    .replace("{color}", color)
+                    .replace("{current}", String.valueOf(materialCount))
+                    .replace("{required}", String.valueOf(config.getCostMaterials()));
+                costLines.add(MessageUtils.colorize(materialsText));
             }
             
             if (!costLines.isEmpty()) {
                 lore.add(""); // 空行分隔
-                lore.add(MessageUtils.colorize("&8━━━━━━━━━━━━━━━━━━━━"));
-                lore.add(MessageUtils.colorize("&7消耗资源:"));
+                lore.add(MessageUtils.colorize(config.getConfirmButtonLoreSeparator()));
+                lore.add(MessageUtils.colorize(config.getConfirmButtonLoreCostTitle()));
                 lore.addAll(costLines);
             }
         }

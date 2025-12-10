@@ -44,6 +44,20 @@ public class PluginConfig {
     private String guiCancelButtonName;
     private Map<Integer, ItemConfig> customSlots;  // 自定义槽位（槽位: ItemConfig）
     
+    // 确认按钮Lore配置
+    private String confirmButtonLoreClickHint;
+    private String confirmButtonLoreSeparator;
+    private String confirmButtonLoreCurrentLevel;
+    private String confirmButtonLoreSuccessRate;
+    private String confirmButtonLoreFailRate;
+    private String confirmButtonLoreProtectCharmHint;
+    private String confirmButtonLoreFailDegradeChance;
+    private String confirmButtonLoreEnhanceCharmHint;
+    private String confirmButtonLoreCostTitle;
+    private String confirmButtonLoreCostGold;
+    private String confirmButtonLoreCostPoints;
+    private String confirmButtonLoreCostMaterials;
+    
     // 消息配置
     private Map<String, String> messages;  // 消息映射表
 
@@ -103,6 +117,20 @@ public class PluginConfig {
         slotCancel = config.getInt("gui.slots.cancel", 40);
         guiConfirmButtonName = config.getString("gui.confirm-button", "&a确认强化");
         guiCancelButtonName = config.getString("gui.cancel-button", "&c取消");
+
+        // 加载确认按钮Lore配置
+        confirmButtonLoreClickHint = config.getString("gui.confirm-button-lore.click-hint", "&7点击确认强化");
+        confirmButtonLoreSeparator = config.getString("gui.confirm-button-lore.separator", "<#d6fff6>&m-<#fffad6>&m=<#FFFFFF>&m---------------<#fffad6>&m=<#d6fff6>&m-");
+        confirmButtonLoreCurrentLevel = config.getString("gui.confirm-button-lore.current-level", "&7当前等级: &e+{currentLevel} &7→ &a+{nextLevel}");
+        confirmButtonLoreSuccessRate = config.getString("gui.confirm-button-lore.success-rate", "&7成功率: &a{successRate}%");
+        confirmButtonLoreFailRate = config.getString("gui.confirm-button-lore.fail-rate", "&7失败率: &c{failRate}%");
+        confirmButtonLoreProtectCharmHint = config.getString("gui.confirm-button-lore.protect-charm-hint", "&7&o失败时不会降级");
+        confirmButtonLoreFailDegradeChance = config.getString("gui.confirm-button-lore.fail-degrade-chance", "&7&o失败降级概率: &c{chance}%");
+        confirmButtonLoreEnhanceCharmHint = config.getString("gui.confirm-button-lore.enhance-charm-hint", "&7&o强化符加成: &a+{bonus}%");
+        confirmButtonLoreCostTitle = config.getString("gui.confirm-button-lore.cost-title", "&7消耗资源:");
+        confirmButtonLoreCostGold = config.getString("gui.confirm-button-lore.cost-gold", "&7金币: {color}{amount}");
+        confirmButtonLoreCostPoints = config.getString("gui.confirm-button-lore.cost-points", "&7点券: {color}{amount}");
+        confirmButtonLoreCostMaterials = config.getString("gui.confirm-button-lore.cost-materials", "&7材料: {color}{current}&7/{required}");
 
         // 加载自定义槽位（支持16进制颜色，例如 &x&F&F&0&0&0&0）
         if (config.getConfigurationSection("gui.custom-slots") != null) {
@@ -207,5 +235,54 @@ public class PluginConfig {
     // 获取指定等级的成功概率（如果不存在，使用默认或最低）
     public double getSuccessRateForLevel(int level) {
         return reinforceSuccessRates.getOrDefault(level, 0.5);  // 默认0.5，如果未配置
+    }
+
+    // 确认按钮Lore配置的getter方法
+    public String getConfirmButtonLoreClickHint() {
+        return confirmButtonLoreClickHint;
+    }
+
+    public String getConfirmButtonLoreSeparator() {
+        return confirmButtonLoreSeparator;
+    }
+
+    public String getConfirmButtonLoreCurrentLevel() {
+        return confirmButtonLoreCurrentLevel;
+    }
+
+    public String getConfirmButtonLoreSuccessRate() {
+        return confirmButtonLoreSuccessRate;
+    }
+
+    public String getConfirmButtonLoreFailRate() {
+        return confirmButtonLoreFailRate;
+    }
+
+    public String getConfirmButtonLoreProtectCharmHint() {
+        return confirmButtonLoreProtectCharmHint;
+    }
+
+    public String getConfirmButtonLoreFailDegradeChance() {
+        return confirmButtonLoreFailDegradeChance;
+    }
+
+    public String getConfirmButtonLoreEnhanceCharmHint() {
+        return confirmButtonLoreEnhanceCharmHint;
+    }
+
+    public String getConfirmButtonLoreCostTitle() {
+        return confirmButtonLoreCostTitle;
+    }
+
+    public String getConfirmButtonLoreCostGold() {
+        return confirmButtonLoreCostGold;
+    }
+
+    public String getConfirmButtonLoreCostPoints() {
+        return confirmButtonLoreCostPoints;
+    }
+
+    public String getConfirmButtonLoreCostMaterials() {
+        return confirmButtonLoreCostMaterials;
     }
 }
