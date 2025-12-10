@@ -4,6 +4,7 @@ import top.arctain.snowTerritory.commands.SnowTerritoryCommand;
 import top.arctain.snowTerritory.config.PluginConfig;
 import top.arctain.snowTerritory.listeners.GUIListener;
 import top.arctain.snowTerritory.listeners.ItemEditListener;
+import top.arctain.snowTerritory.listeners.PlayerJoinListener;
 import top.arctain.snowTerritory.utils.MessageUtils;
 import top.arctain.snowTerritory.utils.NBTUtils;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -46,6 +47,7 @@ public class Main extends JavaPlugin {
         // 注册监听器
         getServer().getPluginManager().registerEvents(new GUIListener(pluginConfig), this);
         getServer().getPluginManager().registerEvents(new ItemEditListener(), this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
 
         MessageUtils.sendStartupBanner(this);
     }
