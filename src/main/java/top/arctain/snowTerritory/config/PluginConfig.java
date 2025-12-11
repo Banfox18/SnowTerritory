@@ -9,6 +9,7 @@ import top.arctain.snowTerritory.utils.MessageUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -145,6 +146,7 @@ public class PluginConfig {
                 try {
                     String material = config.getString("gui.custom-slots." + key + ".material", "GLASS_PANE");
                     String name = config.getString("gui.custom-slots." + key + ".name", "");
+                    List<String> lore = config.getStringList("gui.custom-slots." + key + ".lore");
                     
                     Material mat;
                     try {
@@ -154,7 +156,7 @@ public class PluginConfig {
                         continue;
                     }
                     
-                    ItemConfig itemConfig = new ItemConfig(mat, name);
+                    ItemConfig itemConfig = new ItemConfig(mat, name, lore);
                     
                     // 检查是否为范围表达式 (例如: 0-5)
                     if (key.contains("-")) {
@@ -319,10 +321,12 @@ public class PluginConfig {
     public static class ItemConfig {
         private final Material material;
         private final String name;
+        private final List<String> lore;
 
-        public ItemConfig(Material material, String name) {
+        public ItemConfig(Material material, String name, List<String> lore) {
             this.material = material;
             this.name = name;
+            this.lore = lore != null ? lore : new ArrayList<>();
         }
     }
 

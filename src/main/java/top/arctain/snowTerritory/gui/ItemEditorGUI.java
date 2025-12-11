@@ -139,7 +139,16 @@ public class ItemEditorGUI {
             ItemStack customItem = new ItemStack(itemConfig.getMaterial());
             ItemMeta meta = customItem.getItemMeta();
             if (meta != null) {
-                meta.setDisplayName(MessageUtils.colorize(itemConfig.getName()));
+                if (itemConfig.getName() != null && !itemConfig.getName().isEmpty()) {
+                    meta.setDisplayName(MessageUtils.colorize(itemConfig.getName()));
+                }
+                if (itemConfig.getLore() != null && !itemConfig.getLore().isEmpty()) {
+                    List<String> lore = new ArrayList<>();
+                    for (String line : itemConfig.getLore()) {
+                        lore.add(MessageUtils.colorize(line));
+                    }
+                    meta.setLore(lore);
+                }
                 customItem.setItemMeta(meta);
             }
             gui.setItem(slot, customItem);

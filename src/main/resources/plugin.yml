@@ -10,7 +10,7 @@ commands:
   snowterritory:
     description: SnowTerritory 主命令
     usage: /snowterritory <子命令>
-    aliases: [st]
+    aliases: [sn]
     permission: mmoitemseditor.use
 permissions:
   mmoitemseditor.use:
