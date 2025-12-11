@@ -244,6 +244,11 @@ messages:
     reload: "&e/snowterritory reload &7- &f重载插件配置"
     # 查看ID命令帮助
     checkid: "&e/snowterritory checkID &7- &f查看手中物品的MMOItems ID"
+  
+  # GUI相关消息
+  gui:
+    # 背包满时警告消息
+    inventory-full: "&e⚠ &f背包已满！部分物品已掉落在地上。"
     
   # 分隔线 (用于美化消息显示)
   separator: "&8&m                                        "

@@ -1,6 +1,7 @@
 package top.arctain.snowTerritory.listeners;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -9,6 +10,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.InventoryView;
 import top.arctain.snowTerritory.Main;
 import top.arctain.snowTerritory.config.PluginConfig;
@@ -16,7 +18,9 @@ import top.arctain.snowTerritory.gui.ItemEditorGUI;
 import top.arctain.snowTerritory.utils.ColorUtils;
 import top.arctain.snowTerritory.utils.MessageUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class GUIListener implements Listener {
 
@@ -131,8 +135,101 @@ public class GUIListener implements Listener {
         String configTitle = ColorUtils.stripColor(config.getGuiTitle());
         
         if (title.equals(configTitle)) {
-            // 关闭GUI时，将物品返还给玩家（可选功能）
-            // 这里可以添加物品返还逻辑
+            // 关闭GUI时，将物品返还给玩家
+            returnItemsToPlayer(player, inv);
         }
+    }
+    
+    /**
+     * 将GUI中的物品返还给玩家
+     * 如果背包满了，将物品扔到地上并发出警告
+     */
+    private void returnItemsToPlayer(Player player, Inventory gui) {
+        List<ItemStack> itemsToReturn = new ArrayList<>();
+        
+        // 收集所有可编辑槽位的物品
+        // 武器槽位
+        ItemStack weapon = gui.getItem(config.getSlotWeapon());
+        if (weapon != null && !weapon.getType().isAir()) {
+            itemsToReturn.add(weapon);
+        }
+        
+        // 保护符槽位
+        ItemStack protectCharm = gui.getItem(config.getSlotProtectCharm());
+        if (protectCharm != null && !protectCharm.getType().isAir()) {
+            itemsToReturn.add(protectCharm);
+        }
+        
+        // 强化符槽位
+        ItemStack enhanceCharm = gui.getItem(config.getSlotEnhanceCharm());
+        if (enhanceCharm != null && !enhanceCharm.getType().isAir()) {
+            itemsToReturn.add(enhanceCharm);
+        }
+        
+        // 材料槽位
+        for (int materialSlot : config.getSlotMaterials()) {
+            ItemStack material = gui.getItem(materialSlot);
+            if (material != null && !material.getType().isAir()) {
+                itemsToReturn.add(material);
+            }
+        }
+        
+        // 如果没有物品需要返还，直接返回
+        if (itemsToReturn.isEmpty()) {
+            return;
+        }
+        
+        // 尝试将物品添加到玩家背包
+        List<ItemStack> droppedItems = new ArrayList<>();
+        for (ItemStack item : itemsToReturn) {
+            if (item == null || item.getType().isAir()) {
+                continue;
+            }
+            
+            // 尝试添加到背包
+            ItemStack remaining = addItemToInventory(player, item);
+            
+            // 如果还有剩余物品，说明背包满了
+            if (remaining != null && !remaining.getType().isAir()) {
+                droppedItems.add(remaining);
+            }
+        }
+        
+        // 如果有物品无法放入背包，扔到地上
+        if (!droppedItems.isEmpty()) {
+            for (ItemStack item : droppedItems) {
+                if (item != null && !item.getType().isAir()) {
+                    Item droppedItem = player.getWorld().dropItemNaturally(player.getLocation(), item);
+                    droppedItem.setPickupDelay(0); // 允许立即拾取
+                }
+            }
+            
+            // 发送警告消息
+            MessageUtils.sendWarning(player, "gui.inventory-full", 
+                "&e⚠ &f背包已满！部分物品已掉落在地上。");
+        }
+    }
+    
+    /**
+     * 尝试将物品添加到玩家背包
+     * @param player 玩家
+     * @param item 要添加的物品
+     * @return 如果背包满了，返回剩余物品；如果全部添加成功，返回null
+     */
+    private ItemStack addItemToInventory(Player player, ItemStack item) {
+        if (item == null || item.getType().isAir()) {
+            return null;
+        }
+        
+        // 尝试添加到背包，返回无法添加的物品（如果有）
+        java.util.Map<Integer, ItemStack> remaining = player.getInventory().addItem(item);
+        
+        // 如果map为空，说明全部添加成功
+        if (remaining == null || remaining.isEmpty()) {
+            return null;
+        }
+        
+        // 返回第一个剩余物品（通常只有一个）
+        return remaining.values().iterator().next();
     }
 }
