@@ -51,6 +51,9 @@ public class PlayerJoinListener implements Listener {
         // 构建消息
         String separator = "<g:#FFFFFF:#4A95FF>═════════════════════════</g>";
         
+        // 获取jar包大小
+        String jarSize = getJarSize();
+        
         // 内容部分
         String[] lines = {
             "",
@@ -58,6 +61,7 @@ public class PlayerJoinListener implements Listener {
             "&{#99c2ff}  欢迎您使用 <g:#FFFFFF:#4A95FF>&l雪域插件</g> &{#ffffff}!",
             "&{#99c2ff}  当前版本: <g:#FFFFFF:#4A95FF>" + version + "</g>",
             "&{#99c2ff}  构建日期: <g:#FFFFFF:#4A95FF>" + buildDate + "</g>",
+            "&{#99c2ff}  当前jar包大小: <g:#FFFFFF:#4A95FF>" + jarSize + "</g>",
             "&{#99c2ff}  插件作者: <g:#FFFFFF:#4A95FF>Arctain</g>",
             "&{#99c2ff}  作者QQ: <g:#FFFFFF:#4A95FF>1546025015</g>",
             separator,
@@ -89,6 +93,35 @@ public class PlayerJoinListener implements Listener {
             // 忽略错误
         }
         return "未知";
+    }
+
+    /**
+     * 获取jar文件大小（按KB计算，带千位分隔符）
+     */
+    private String getJarSize() {
+        try {
+            // 通过类文件路径获取jar文件
+            java.net.URL url = plugin.getClass().getProtectionDomain().getCodeSource().getLocation();
+            if (url != null) {
+                File jarFile = new File(url.toURI());
+                if (jarFile.exists()) {
+                    long sizeInBytes = jarFile.length();
+                    long sizeInKB = sizeInBytes / 1024;
+                    // 格式化数字，添加千位分隔符
+                    return formatNumber(sizeInKB) + "KB";
+                }
+            }
+        } catch (Exception e) {
+            // 忽略错误
+        }
+        return "未知";
+    }
+
+    /**
+     * 格式化数字，添加千位分隔符
+     */
+    private String formatNumber(long number) {
+        return String.format("%,d", number);
     }
 }
 
