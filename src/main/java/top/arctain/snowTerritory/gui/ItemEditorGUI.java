@@ -41,6 +41,48 @@ public class ItemEditorGUI {
         // 使用反射安全获取 PlayerPoints（避免类加载时依赖）
         this.playerPointsAPI = getPlayerPointsAPI();
     }
+
+    /**
+     * 符文校验结果，复用保护符和强化符的判定逻辑
+     */
+    private static class CharmInfo {
+        final boolean valid;
+        final boolean expired;
+        final int maxLevel;
+        final int bonus; // 仅强化符使用，保护符为0
+
+        CharmInfo(boolean valid, boolean expired, int maxLevel, int bonus) {
+            this.valid = valid;
+            this.expired = expired;
+            this.maxLevel = maxLevel;
+            this.bonus = bonus;
+        }
+
+        static CharmInfo invalid() {
+            return new CharmInfo(false, false, -1, 0);
+        }
+    }
+
+    private CharmInfo evaluateProtectCharm(ItemStack protectCharm, int nextLevel) {
+        if (protectCharm == null) return CharmInfo.invalid();
+        if (!Utils.isPreservationToken(protectCharm, config.getPreservationTokenType())) return CharmInfo.invalid();
+
+        int maxLevel = Utils.parseMaxLevelFromLore(protectCharm);
+        boolean valid = maxLevel >= 0 && nextLevel <= maxLevel;
+        boolean expired = maxLevel >= 0 && nextLevel > maxLevel;
+        return new CharmInfo(valid, expired, maxLevel, 0);
+    }
+
+    private CharmInfo evaluateEnhanceCharm(ItemStack enhanceCharm, int nextLevel) {
+        if (enhanceCharm == null) return CharmInfo.invalid();
+        if (!Utils.isUpgradeToken(enhanceCharm, config.getUpgradeTokenType())) return CharmInfo.invalid();
+
+        int maxLevel = Utils.parseMaxLevelFromLore(enhanceCharm);
+        int bonus = Utils.parseProbabilityBoostFromLore(enhanceCharm);
+        boolean valid = maxLevel >= 0 && nextLevel <= maxLevel && bonus > 0;
+        boolean expired = maxLevel >= 0 && nextLevel > maxLevel;
+        return new CharmInfo(valid, expired, maxLevel, bonus);
+    }
     
     /**
      * 使用反射获取 Vault Economy（避免直接导入类）
@@ -200,50 +242,23 @@ public class ItemEditorGUI {
             int nextLevel = currentLevel + 1;
             
             // 验证保护符
-            boolean protectCharmValid = false;
-            boolean protectCharmExpired = false;
-            int protectCharmMaxLevel = -1;
-            if (protectCharm != null) {
-                if (Utils.isPreservationToken(protectCharm, config.getPreservationTokenType())) {
-                    protectCharmMaxLevel = Utils.parseMaxLevelFromLore(protectCharm);
-                    if (protectCharmMaxLevel >= 0 && nextLevel <= protectCharmMaxLevel) {
-                        protectCharmValid = true;
-                    } else if (protectCharmMaxLevel >= 0) {
-                        protectCharmExpired = true;
-                    }
-                }
-            }
+            CharmInfo protectCharmInfo = evaluateProtectCharm(protectCharm, nextLevel);
             
             // 验证强化符
-            boolean enhanceCharmValid = false;
-            boolean enhanceCharmExpired = false;
-            int enhanceCharmMaxLevel = -1;
-            int enhanceCharmBonus = 0;
-            if (enhanceCharm != null) {
-                if (Utils.isUpgradeToken(enhanceCharm, config.getUpgradeTokenType())) {
-                    enhanceCharmMaxLevel = Utils.parseMaxLevelFromLore(enhanceCharm);
-                    enhanceCharmBonus = Utils.parseProbabilityBoostFromLore(enhanceCharm);
-                    if (enhanceCharmMaxLevel >= 0 && nextLevel <= enhanceCharmMaxLevel && enhanceCharmBonus > 0) {
-                        enhanceCharmValid = true;
-                    } else if (enhanceCharmMaxLevel >= 0) {
-                        enhanceCharmExpired = true;
-                    }
-                }
-            }
+            CharmInfo enhanceCharmInfo = evaluateEnhanceCharm(enhanceCharm, nextLevel);
             
             // 计算成功率
             double baseSuccessRate = config.getSuccessRateForLevel(nextLevel);
-            if (enhanceCharmValid) {
-                baseSuccessRate += enhanceCharmBonus / 100.0; // 强化符增加概率（百分比转小数）
+            if (enhanceCharmInfo.valid) {
+                baseSuccessRate += enhanceCharmInfo.bonus / 100.0; // 强化符增加概率（百分比转小数）
             }
             double successRate = Math.min(1.0, baseSuccessRate); // 确保不超过100%
             
             // 计算失败率
             double failDegradeChance = config.getReinforceFailDegradeChance();
-            if (protectCharmValid) {
+            if (protectCharmInfo.valid) {
                 failDegradeChance = 0.0; // 保护符：失败不降级
             }
-            double totalFailRate = 1.0 - successRate; // 总失败率（包括降级和维持）
             
             lore.add(MessageUtils.colorize(config.getConfirmButtonLoreSeparator()));
             
@@ -255,8 +270,8 @@ public class ItemEditorGUI {
             
             // 成功率（包含强化符加成）
             String bonusText = "";
-            if (enhanceCharmValid) {
-                bonusText = "&7(&a+" + enhanceCharmBonus + "%&7)";
+            if (enhanceCharmInfo.valid) {
+                bonusText = "&7(&a+" + enhanceCharmInfo.bonus + "%&7)";
             }
             String successRateText = config.getConfirmButtonLoreSuccessRate()
                 .replace("{successRate}", String.format("%.1f", successRate * 100))
@@ -265,7 +280,7 @@ public class ItemEditorGUI {
             
             // 失败降级概率（包含保护符保护）
             String protectText = "";
-            if (protectCharmValid) {
+            if (protectCharmInfo.valid) {
                 double originalFailDegradeChance = config.getReinforceFailDegradeChance();
                 if (originalFailDegradeChance > 0) {
                     protectText = "&7(&c-" + String.format("%.1f", originalFailDegradeChance * 100) + "%&7)";
@@ -277,10 +292,10 @@ public class ItemEditorGUI {
             lore.add(MessageUtils.colorize(failDegradeText));
             
             // 如果有保护符但无效，显示失效信息
-            if (protectCharm != null && !protectCharmValid) {
-                if (protectCharmExpired) {
+            if (protectCharm != null && !protectCharmInfo.valid) {
+                if (protectCharmInfo.expired) {
                     String expiredText = config.getConfirmButtonLoreProtectCharmExpired()
-                        .replace("{maxLevel}", String.valueOf(protectCharmMaxLevel));
+                        .replace("{maxLevel}", String.valueOf(protectCharmInfo.maxLevel));
                     lore.add(MessageUtils.colorize(expiredText));
                 } else {
                     lore.add(MessageUtils.colorize(config.getConfirmButtonLoreProtectCharmInvalid()));
@@ -288,10 +303,10 @@ public class ItemEditorGUI {
             }
             
             // 如果有强化符但无效，显示失效信息
-            if (enhanceCharm != null && !enhanceCharmValid) {
-                if (enhanceCharmExpired) {
+            if (enhanceCharm != null && !enhanceCharmInfo.valid) {
+                if (enhanceCharmInfo.expired) {
                     String expiredText = config.getConfirmButtonLoreEnhanceCharmExpired()
-                        .replace("{maxLevel}", String.valueOf(enhanceCharmMaxLevel));
+                        .replace("{maxLevel}", String.valueOf(enhanceCharmInfo.maxLevel));
                     lore.add(MessageUtils.colorize(expiredText));
                 } else {
                     lore.add(MessageUtils.colorize(config.getConfirmButtonLoreEnhanceCharmInvalid()));
@@ -409,27 +424,9 @@ public class ItemEditorGUI {
         int currentLevel = Utils.getCurrentLevel(weapon);
         int nextLevel = currentLevel + 1;
         
-        boolean protectCharmValid = false;
-        if (protectCharm != null) {
-            if (Utils.isPreservationToken(protectCharm, config.getPreservationTokenType())) {
-                int protectCharmMaxLevel = Utils.parseMaxLevelFromLore(protectCharm);
-                if (protectCharmMaxLevel >= 0 && nextLevel <= protectCharmMaxLevel) {
-                    protectCharmValid = true;
-                }
-            }
-        }
+        CharmInfo protectCharmInfo = evaluateProtectCharm(protectCharm, nextLevel);
         
-        boolean enhanceCharmValid = false;
-        int enhanceCharmBonus = 0;
-        if (enhanceCharm != null) {
-            if (Utils.isUpgradeToken(enhanceCharm, config.getUpgradeTokenType())) {
-                int enhanceCharmMaxLevel = Utils.parseMaxLevelFromLore(enhanceCharm);
-                enhanceCharmBonus = Utils.parseProbabilityBoostFromLore(enhanceCharm);
-                if (enhanceCharmMaxLevel >= 0 && nextLevel <= enhanceCharmMaxLevel && enhanceCharmBonus > 0) {
-                    enhanceCharmValid = true;
-                }
-            }
-        }
+        CharmInfo enhanceCharmInfo = evaluateEnhanceCharm(enhanceCharm, nextLevel);
 
         // 扣除消耗
         if (economy != null && config.getCostVaultGold() > 0) {
@@ -442,7 +439,7 @@ public class ItemEditorGUI {
             if (materials[i] != null) gui.setItem(config.getSlotMaterials()[i], null);  // 消耗材料
         }
         // 只有有效的保护符和强化符才会被消耗（只消耗一个）
-        if (protectCharmValid) {
+        if (protectCharmInfo.valid) {
             ItemStack protectCharmItem = gui.getItem(config.getSlotProtectCharm());
             if (protectCharmItem != null) {
                 int amount = protectCharmItem.getAmount();
@@ -454,7 +451,7 @@ public class ItemEditorGUI {
                 }
             }
         }
-        if (enhanceCharmValid) {
+        if (enhanceCharmInfo.valid) {
             ItemStack enhanceCharmItem = gui.getItem(config.getSlotEnhanceCharm());
             if (enhanceCharmItem != null) {
                 int amount = enhanceCharmItem.getAmount();
@@ -469,12 +466,12 @@ public class ItemEditorGUI {
         
         // 计算概率（基础 + 强化符效果）
         double baseSuccessRate = config.getSuccessRateForLevel(nextLevel);  // 针对下一级
-        if (enhanceCharmValid) {
-            baseSuccessRate += enhanceCharmBonus / 100.0;  // 强化符增加概率（百分比转小数）
+        if (enhanceCharmInfo.valid) {
+            baseSuccessRate += enhanceCharmInfo.bonus / 100.0;  // 强化符增加概率（百分比转小数）
         }
         double failDegradeChance = config.getReinforceFailDegradeChance();
         double maintainChance = config.getReinforceMaintainChance();
-        if (protectCharmValid) {
+        if (protectCharmInfo.valid) {
             failDegradeChance = 0.0;  // 保护符：失败不降级
         }
 
