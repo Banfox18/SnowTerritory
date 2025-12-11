@@ -33,6 +33,7 @@ public final class DefaultFiles {
     public static final String DEFAULT_WHITELIST = """
             bone:
               type: BONE
+              mmo_type: ""
               id: ""
               display: "&f骷髅骨头"
               lore:

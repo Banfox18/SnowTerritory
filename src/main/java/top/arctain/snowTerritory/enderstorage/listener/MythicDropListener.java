@@ -29,23 +29,16 @@ public class MythicDropListener implements Listener {
         if (!event.getEntity().getKiller().hasPermission("st.loot.auto")) {
             return;
         }
-        // 简单示例：拦截全部掉落并尝试写库，未来与白名单绑定
+        // 拦截白名单物品
         int slotLimit = service.resolveSlots(event.getEntity().getKiller());
         event.getDrops().removeIf(itemStack -> {
-            String key = itemKey(itemStack);
+            String key = service.matchItemKey(itemStack);
             if (key == null) return false;
             int perItemMax = service.resolvePerItemMax(event.getEntity().getKiller(), key);
             service.add(event.getEntity().getKiller().getUniqueId(), key, itemStack.getAmount(), perItemMax, slotLimit);
             MessageUtils.sendSuccess(event.getEntity().getKiller(), "enderstorage.loot-gained", "&a+" + itemStack.getAmount() + "x " + key + " 已存入战利品仓库");
             return configManager.getMainConfig().getBoolean("features.cancel-entity-drop", true);
         });
-    }
-
-    private String itemKey(ItemStack stack) {
-        if (stack == null || stack.getType().isAir()) {
-            return null;
-        }
-        return stack.getType().name().toLowerCase();
     }
 }
 

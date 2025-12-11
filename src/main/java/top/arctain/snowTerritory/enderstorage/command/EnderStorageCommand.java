@@ -18,10 +18,12 @@ public class EnderStorageCommand implements CommandExecutor, TabCompleter {
     private final EnderStorageConfigManager configManager;
     private final LootStorageService service;
     private final MessageProvider messages;
+    private final top.arctain.snowTerritory.enderstorage.gui.LootStorageGUI gui;
 
-    public EnderStorageCommand(EnderStorageConfigManager configManager, LootStorageService service) {
+    public EnderStorageCommand(EnderStorageConfigManager configManager, LootStorageService service, top.arctain.snowTerritory.enderstorage.gui.LootStorageGUI gui) {
         this.configManager = configManager;
         this.service = service;
+        this.gui = gui;
         String lang = configManager.getMainConfig().getString("features.default-language", "zh_CN");
         this.messages = new MessageProvider(configManager.getMessagePacks(), lang);
     }
@@ -64,8 +66,7 @@ public class EnderStorageCommand implements CommandExecutor, TabCompleter {
             MessageUtils.sendError(sender, "enderstorage.no-permission", messages.get(sender, "no-permission", "&c✗ &f没有权限"));
             return true;
         }
-        // TODO: GUI 实装
-        MessageUtils.sendSuccess(player, "enderstorage.open", messages.get(sender, "open", "&a✓ &f打开战利品仓库（GUI 开发中）"));
+        gui.open(player, 1);
         return true;
     }
 

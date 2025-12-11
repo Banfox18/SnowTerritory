@@ -7,6 +7,7 @@ import top.arctain.snowTerritory.enderstorage.config.EnderStorageConfigManager;
 import top.arctain.snowTerritory.enderstorage.config.ProgressionResolver;
 import top.arctain.snowTerritory.enderstorage.config.WhitelistEntry;
 import top.arctain.snowTerritory.utils.MessageUtils;
+import top.arctain.snowTerritory.utils.Utils;
 
 import java.io.File;
 import java.util.Collections;
@@ -54,10 +55,11 @@ public class LootStorageServiceImpl implements LootStorageService {
             String base = key + ".";
             String display = cfg.getString(base + "display", key);
             String mmoId = cfg.getString(base + "id", "");
+            String mmoType = cfg.getString(base + "mmo_type", "");
             String type = cfg.getString(base + "type", "STONE");
             int max = cfg.getInt(base + "default_max", 256);
             try {
-                result.put(key, new WhitelistEntry(key, display, mmoId, org.bukkit.Material.valueOf(type), max));
+                result.put(key, new WhitelistEntry(key, display, mmoType, mmoId, org.bukkit.Material.valueOf(type), max));
             } catch (IllegalArgumentException ex) {
                 MessageUtils.logWarning("白名单物品类型无效: " + type + " @ " + key);
             }
@@ -112,6 +114,42 @@ public class LootStorageServiceImpl implements LootStorageService {
     @Override
     public Map<String, Integer> getAll(UUID playerId) {
         return Collections.unmodifiableMap(getPlayerData(playerId));
+    }
+
+    @Override
+    public String matchItemKey(org.bukkit.inventory.ItemStack stack) {
+        if (stack == null || stack.getType().isAir()) {
+            return null;
+        }
+        boolean isMmo = Utils.isMMOItem(stack);
+        for (WhitelistEntry entry : whitelist.values()) {
+            if (isMmo && entry.getMmoItemId() != null && !entry.getMmoItemId().isEmpty()) {
+                try {
+                    net.Indyuce.mmoitems.api.Type type = net.Indyuce.mmoitems.MMOItems.getType(stack);
+                    String id = net.Indyuce.mmoitems.MMOItems.getID(stack);
+                    if (type != null && id != null
+                            && id.equalsIgnoreCase(entry.getMmoItemId())
+                            && (entry.getMmoType() == null || entry.getMmoType().isEmpty() || type.getId().equalsIgnoreCase(entry.getMmoType()))) {
+                        return entry.getKey();
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+            if (entry.getMaterial() == stack.getType()) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public WhitelistEntry getWhitelistEntry(String key) {
+        return whitelist.get(key);
+    }
+
+    @Override
+    public java.util.Collection<WhitelistEntry> getWhitelistEntries() {
+        return whitelist.values();
     }
 
     @Override

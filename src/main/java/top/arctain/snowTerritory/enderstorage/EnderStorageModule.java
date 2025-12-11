@@ -6,6 +6,8 @@ import top.arctain.snowTerritory.Main;
 import top.arctain.snowTerritory.enderstorage.command.EnderStorageCommand;
 import top.arctain.snowTerritory.enderstorage.config.EnderStorageConfigManager;
 import top.arctain.snowTerritory.enderstorage.listener.MythicDropListener;
+import top.arctain.snowTerritory.enderstorage.listener.LootGuiListener;
+import top.arctain.snowTerritory.enderstorage.gui.LootStorageGUI;
 import top.arctain.snowTerritory.enderstorage.service.LootStorageService;
 import top.arctain.snowTerritory.enderstorage.service.LootStorageServiceImpl;
 import top.arctain.snowTerritory.utils.MessageUtils;
@@ -18,6 +20,7 @@ public class EnderStorageModule {
     private final Main plugin;
     private final EnderStorageConfigManager configManager;
     private final LootStorageService lootStorageService;
+    private LootStorageGUI lootStorageGUI;
 
     public EnderStorageModule(Main plugin) {
         this.plugin = plugin;
@@ -28,6 +31,7 @@ public class EnderStorageModule {
     public void enable() {
         configManager.loadAll();
         lootStorageService.initialize();
+        this.lootStorageGUI = new LootStorageGUI(plugin, configManager, lootStorageService);
 
         registerCommand();
         registerListeners();
@@ -42,12 +46,13 @@ public class EnderStorageModule {
     public void reload() {
         configManager.loadAll();
         lootStorageService.reload();
+        this.lootStorageGUI = new LootStorageGUI(plugin, configManager, lootStorageService);
     }
 
     private void registerCommand() {
         PluginCommand command = plugin.getCommand("snowterritoryenderstorage");
         if (command != null) {
-            EnderStorageCommand executor = new EnderStorageCommand(configManager, lootStorageService);
+            EnderStorageCommand executor = new EnderStorageCommand(configManager, lootStorageService, lootStorageGUI);
             command.setExecutor(executor);
             command.setTabCompleter(executor);
         } else {
@@ -58,6 +63,9 @@ public class EnderStorageModule {
     private void registerListeners() {
         PluginManager pm = plugin.getServer().getPluginManager();
         pm.registerEvents(new MythicDropListener(configManager, lootStorageService), plugin);
+        if (lootStorageGUI != null) {
+            pm.registerEvents(new LootGuiListener(plugin, lootStorageGUI, lootStorageService), plugin);
+        }
     }
 
     public LootStorageService getLootStorageService() {

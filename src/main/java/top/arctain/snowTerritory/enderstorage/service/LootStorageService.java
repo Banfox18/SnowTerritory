@@ -20,6 +20,18 @@ public interface LootStorageService {
 
     Map<String, Integer> getAll(UUID playerId);
 
+    /**
+     * 根据物品匹配白名单 key，未匹配返回 null。
+     */
+    String matchItemKey(org.bukkit.inventory.ItemStack stack);
+
+    /**
+     * 取白名单定义。
+     */
+    top.arctain.snowTerritory.enderstorage.config.WhitelistEntry getWhitelistEntry(String key);
+
+    java.util.Collection<top.arctain.snowTerritory.enderstorage.config.WhitelistEntry> getWhitelistEntries();
+
     int resolveSlots(Player player);
 
     int resolvePerItemMax(Player player, String itemKey);
