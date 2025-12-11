@@ -38,6 +38,44 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                        <configuration>
+                            <!-- 排除不必要的文件 -->
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <!-- 排除 META-INF 中的签名文件 -->
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <!-- 排除不必要的文档和源码 -->
+                                        <exclude>META-INF/*.txt</exclude>
+                                        <exclude>META-INF/LICENSE*</exclude>
+                                        <exclude>META-INF/NOTICE*</exclude>
+                                        <exclude>META-INF/DEPENDENCIES</exclude>
+                                    </excludes>
+                                </filter>
+                                <!-- SQLite JDBC：排除不需要的平台本地库（针对 Windows 11 服务器优化） -->
+                                <!-- 当前配置：仅保留 Windows 64位 (Windows-x86_64) 本地库 -->
+                                <!-- 如需部署到 Linux 服务器，请取消注释 Linux 相关排除项，并取消注释 Windows-x86_64 的排除 -->
+                                <filter>
+                                    <artifact>org.xerial:sqlite-jdbc</artifact>
+                                    <excludes>
+                                        <exclude>org/sqlite/native/FreeBSD/**</exclude>
+                                        <exclude>org/sqlite/native/Linux-Android/**</exclude>
+                                        <exclude>org/sqlite/native/Linux-Musl/**</exclude>
+                                        <exclude>org/sqlite/native/Linux-Musl-Linux/**</exclude>
+                                        <exclude>org/sqlite/native/Mac-Android/**</exclude>
+                                        <exclude>org/sqlite/native/Mac-OSX-aarch64/**</exclude>
+                                        <exclude>org/sqlite/native/Mac-OSX-arm64/**</exclude>
+                                        <exclude>org/sqlite/native/Mac-OSX-x86_64/**</exclude>
+                                        <exclude>org/sqlite/native/Windows-x86/**</exclude>
+                                        <!-- Windows 64位库保留（适用于 Windows 11 服务器） -->
+                                        <!-- <exclude>org/sqlite/native/Windows-x86_64/**</exclude> -->
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
