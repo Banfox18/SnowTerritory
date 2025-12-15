@@ -126,12 +126,28 @@ public class LootStorageGUI {
             if (displayName == null || displayName.isEmpty()) {
                 displayName = entry.getDisplay();
             }
+            
+            // 构建 lore：先添加自定义 lore（如果有），然后添加默认 lore
             List<String> lore = new ArrayList<>();
-            lore.add(MessageUtils.colorize("&7数量: &e" + amount + " / " + entry.getDefaultMax()));
-            lore.add(MessageUtils.colorize("&8| &7左键 ▸ 存入 8"));
-            lore.add(MessageUtils.colorize("&8| &7SHIFT+左键 ▸ 存入 64"));
-            lore.add(MessageUtils.colorize("&8| &7右键 ▸ 取出 8"));
-            lore.add(MessageUtils.colorize("&8| &7中键 ▸ 取出 64"));
+            
+            // 1. 如果有自定义 lore，先添加到上方
+            if (entry.getLore() != null && !entry.getLore().isEmpty()) {
+                for (String line : entry.getLore()) {
+                    String processed = line
+                            .replace("%amount%", String.valueOf(amount))
+                            .replace("%max%", String.valueOf(entry.getDefaultMax()));
+                    lore.add(MessageUtils.colorize(processed));
+                }
+            }
+            
+            // 2. 然后添加默认 lore 模板（显示在自定义 lore 下方）
+            for (String line : configManager.getDefaultItemLoreTemplate()) {
+                String processed = line
+                        .replace("%amount%", String.valueOf(amount))
+                        .replace("%max%", String.valueOf(entry.getDefaultMax()));
+                lore.add(MessageUtils.colorize(processed));
+            }
+            
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ENCHANTS);
             meta.getPersistentDataContainer().set(KEY_ITEM, PersistentDataType.STRING, entry.getKey());

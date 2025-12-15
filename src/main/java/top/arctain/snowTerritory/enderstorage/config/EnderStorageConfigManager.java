@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -109,6 +110,31 @@ public class EnderStorageConfigManager {
     }
 
     // ===== GUI 辅助方法 =====
+
+    /**
+     * 获取默认物品 lore 模板
+     * 优先使用 gui.yml 中的 gui.default-lore；如果未配置则使用内置默认值。
+     * 支持占位符: %amount% (当前数量), %max% (最大数量)
+     */
+    public List<String> getDefaultItemLoreTemplate() {
+        List<String> configured;
+        if (guiConfig == null) {
+            configured = java.util.Collections.emptyList();
+        } else {
+            configured = guiConfig.getStringList("gui.default-lore");
+        }
+        if (configured == null || configured.isEmpty()) {
+            // 内置默认模板，与旧版本的硬编码提示保持一致
+            return java.util.Arrays.asList(
+                    "&7数量: &e%amount% / %max%",
+                    "&8| &7左键 ▸ 存入 8",
+                    "&8| &7SHIFT+左键 ▸ 存入 64",
+                    "&8| &7右键 ▸ 取出 8",
+                    "&8| &7中键 ▸ 取出 64"
+            );
+        }
+        return configured;
+    }
 
     /**
      * 获取 GUI 标题（带默认值）

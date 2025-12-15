@@ -72,9 +72,30 @@ public class LootStorageServiceImpl implements LootStorageService {
             for (String mmoItemId : typeSection.getKeys(false)) {
                 // 生成key为"mmoType:mmoItemId"格式
                 String key = mmoType + ":" + mmoItemId;
-                int max = typeSection.getInt(mmoItemId, 256);
+                
+                // 检查配置是简单格式（数字）还是对象格式
+                Object value = typeSection.get(mmoItemId);
+                int max;
+                java.util.List<String> lore = null;
+                
+                if (value instanceof org.bukkit.configuration.ConfigurationSection) {
+                    // 对象格式: "itemName: {max: 256, lore: [...]}"
+                    org.bukkit.configuration.ConfigurationSection itemSection = typeSection.getConfigurationSection(mmoItemId);
+                    if (itemSection != null) {
+                        max = itemSection.getInt("max", 256);
+                        if (itemSection.contains("lore")) {
+                            lore = itemSection.getStringList("lore");
+                        }
+                    } else {
+                        max = 256;
+                    }
+                } else {
+                    // 简单格式: "itemName: 256" (支持数字或字符串数字)
+                    max = typeSection.getInt(mmoItemId, 256);
+                }
+                
                 // display 使用 mmoItemId，material 设为 null（MMOItems 物品不需要 material）
-                result.put(key, new WhitelistEntry(key, mmoItemId, mmoType, mmoItemId, null, max));
+                result.put(key, new WhitelistEntry(key, mmoItemId, mmoType, mmoItemId, null, max, lore));
             }
         }
         return result;

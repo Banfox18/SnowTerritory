@@ -2,6 +2,8 @@ package top.arctain.snowTerritory.enderstorage.config;
 
 import org.bukkit.Material;
 
+import java.util.List;
+
 /**
  * 白名单物品定义。
  */
@@ -12,14 +14,20 @@ public class WhitelistEntry {
     private final String mmoItemId;
     private final Material material;
     private final int defaultMax;
+    private final List<String> lore;
 
     public WhitelistEntry(String key, String display, String mmoType, String mmoItemId, Material material, int defaultMax) {
+        this(key, display, mmoType, mmoItemId, material, defaultMax, null);
+    }
+
+    public WhitelistEntry(String key, String display, String mmoType, String mmoItemId, Material material, int defaultMax, List<String> lore) {
         this.key = key;
         this.display = display;
         this.mmoType = mmoType;
         this.mmoItemId = mmoItemId;
         this.material = material;
         this.defaultMax = defaultMax;
+        this.lore = lore;
     }
 
     public String getKey() {
@@ -44,6 +52,10 @@ public class WhitelistEntry {
 
     public int getDefaultMax() {
         return defaultMax;
+    }
+
+    public List<String> getLore() {
+        return lore;
     }
 }
 

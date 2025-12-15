@@ -79,13 +79,34 @@ public final class DefaultFiles {
                     name: "&{#d6fff6}&m-&{#fffad6}&m=&{#FFFFFF}&m-&8 [&{#3ab835}末影&{#6dc97f}存储&8] &{#FFFFFF}&m-&{#fffad6}&m=&{#d6fff6}&m-"
                     lore:
                       - ""
-                
+              
+              # 默认物品 lore 模板（所有物品共用，如需修改提示只改这里即可）
+              # 支持占位符: %amount% (当前数量), %max% (最大数量)
+              default-lore:
+                - "&7数量: &e%amount% / %max%"
+                - "&8| &7左键 ▸ 存入 8"
+                - "&8| &7SHIFT+左键 ▸ 存入 64"
+                - "&8| &7右键 ▸ 取出 8"
+                - "&8| &7中键 ▸ 取出 64"
+
               # 物品顺序与分组（只展示出现在这里并且在白名单中的物品）
               materials:
                 MM_DROPS:
-                  优质狼皮: 256
-                  瓶装兽血: 256
-                  狼王獠牙: 128
+                  优质狼皮:
+                    max: 256
+                  瓶装兽血:
+                    max: 256
+                  狼王獠牙:
+                    max: 128
+              # 注意:
+              # 1. 如果物品配置为数字（如 "优质狼皮: 256"），等价于 {max: 256}，同样会使用上面的 default-lore
+              # 2. 如果某个物品需要单独的提示，可以在该物品下增加 lore 节点覆盖默认值:
+              #    示例:
+              #      某物品:
+              #        max: 64
+              #        lore:
+              #          - "&7自定义第一行"
+              #          - "&7自定义第二行"
             """;
 
     public static final String DEFAULT_MESSAGES_ZH = """
