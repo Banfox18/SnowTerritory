@@ -42,25 +42,60 @@ public class LootStorageGUI {
 
     public void open(Player player, int page) {
         Map<String, Integer> data = service.getAll(player.getUniqueId());
-        List<String> keys = service.getWhitelistEntries().stream().map(WhitelistEntry::getKey).collect(Collectors.toList());
-        int perPage = 45;
-        int totalPages = Math.max(1, (int) Math.ceil(keys.size() / (double) perPage));
+        List<String> orderedKeys = configManager.getGuiMaterialKeys();
+
+        // 如果 gui.yml 未配置 materials，则退回到白名单顺序
+        if (orderedKeys.isEmpty()) {
+            orderedKeys = service.getWhitelistEntries().stream().map(WhitelistEntry::getKey).collect(Collectors.toList());
+        }
+
+        List<Integer> materialSlots = configManager.getMaterialSlots();
+        int perPage = materialSlots.size();
+        if (perPage <= 0) {
+            perPage = 45; // 安全兜底
+        }
+
+        int totalPages = Math.max(1, (int) Math.ceil(orderedKeys.size() / (double) perPage));
         int currentPage = Math.min(Math.max(page, 1), totalPages);
         int start = (currentPage - 1) * perPage;
-        int end = Math.min(keys.size(), start + perPage);
-        Inventory inv = Bukkit.createInventory(new LootHolder(player.getUniqueId(), currentPage), 54,
-                MessageUtils.colorize(messages.get(player, "gui-title", "战利品仓库 (" + currentPage + "/" + totalPages + ")")));
+        int end = Math.min(orderedKeys.size(), start + perPage);
 
-        for (int i = start; i < end; i++) {
-            String key = keys.get(i);
+        int size = configManager.getGuiSize();
+        Inventory inv = Bukkit.createInventory(new LootHolder(player.getUniqueId(), currentPage), size,
+                MessageUtils.colorize(configManager.getGuiTitle()));
+
+        // 1. 放置翻页按钮
+        int prevSlot = configManager.getPreviousPageSlot();
+        int nextSlot = configManager.getNextPageSlot();
+        inv.setItem(prevSlot, navItem(Material.ARROW, "上一页", currentPage > 1 ? currentPage - 1 : currentPage));
+        inv.setItem(nextSlot, navItem(Material.ARROW, "下一页", currentPage < totalPages ? currentPage + 1 : currentPage));
+
+        // 2. 物品栏位本身只是“功能槽位”，不需要预放物品，这里无需写入
+
+        // 3. 放置装饰栏位（不会覆盖翻页和后续物品）
+        applyDecorationSlots(inv);
+
+        // 4. 按配置文件的物品列表，将物品按顺序放入物品栏位（不覆盖已有物品）
+        int index = 0;
+        for (int i = start; i < end && index < materialSlots.size(); i++) {
+            String key = orderedKeys.get(i);
             WhitelistEntry entry = service.getWhitelistEntry(key);
+            if (entry == null) {
+                continue;
+            }
             int amount = data.getOrDefault(key, 0);
             ItemStack display = buildDisplayItem(entry, amount);
-            inv.setItem(i - start, display);
+
+            // 找到下一个空的物品槽位（不覆盖装饰或翻页）
+            while (index < materialSlots.size()) {
+                int slot = materialSlots.get(index++);
+                ItemStack existing = inv.getItem(slot);
+                if (existing == null || existing.getType().isAir()) {
+                    inv.setItem(slot, display);
+                    break;
+                }
+            }
         }
-        // 翻页按钮
-        inv.setItem(45, navItem(Material.ARROW, "上一页", currentPage > 1 ? currentPage - 1 : currentPage));
-        inv.setItem(53, navItem(Material.ARROW, "下一页", currentPage < totalPages ? currentPage + 1 : currentPage));
 
         player.openInventory(inv);
     }
@@ -76,6 +111,11 @@ public class LootStorageGUI {
         return item;
     }
 
+    private void applyDecorationSlots(Inventory inv) {
+        Map<Integer, top.arctain.snowTerritory.utils.GuiSlotUtils.SlotItem> decorations = configManager.getDecorationSlots();
+        top.arctain.snowTerritory.utils.GuiSlotUtils.applySlotItems(inv, decorations, true);
+    }
+
     private ItemStack buildDisplayItem(WhitelistEntry entry, int amount) {
         ItemStack base = buildRealItem(entry);
         ItemMeta meta = base.getItemMeta();
@@ -87,24 +127,11 @@ public class LootStorageGUI {
                 displayName = entry.getDisplay();
             }
             List<String> lore = new ArrayList<>();
-            // 如果配置中有lore，先添加配置的lore
-            org.bukkit.configuration.file.FileConfiguration whitelistConfig = configManager.getWhitelistConfig();
-            String[] keyParts = entry.getKey().split(":", 2);
-            if (keyParts.length == 2) {
-                String mmoType = keyParts[0];
-                String mmoItemId = keyParts[1];
-                List<String> configLore = whitelistConfig.getStringList(mmoType + "." + mmoItemId + ".lore");
-                if (configLore != null && !configLore.isEmpty()) {
-                    for (String loreLine : configLore) {
-                        lore.add(MessageUtils.colorize(loreLine));
-                    }
-                }
-            }
             lore.add(MessageUtils.colorize("&7数量: &e" + amount + " / " + entry.getDefaultMax()));
             lore.add(MessageUtils.colorize("&8| &7左键 ▸ 存入 8"));
             lore.add(MessageUtils.colorize("&8| &7SHIFT+左键 ▸ 存入 64"));
             lore.add(MessageUtils.colorize("&8| &7右键 ▸ 取出 8"));
-            lore.add(MessageUtils.colorize("&8| &7SHIFT+右键 ▸ 取出 64"));
+            lore.add(MessageUtils.colorize("&8| &7中键 ▸ 取出 64"));
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ENCHANTS);
             meta.getPersistentDataContainer().set(KEY_ITEM, PersistentDataType.STRING, entry.getKey());

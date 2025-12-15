@@ -1,7 +1,6 @@
 package top.arctain.snowTerritory.reinforce.config;
 
 import lombok.Getter;
-import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import top.arctain.snowTerritory.Main;
@@ -9,7 +8,6 @@ import top.arctain.snowTerritory.utils.MessageUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -49,7 +47,7 @@ public class ReinforceConfigManager {
     private int slotCancel;  // 取消按钮槽位
     private String guiConfirmButtonName;
     private String guiCancelButtonName;
-    private Map<Integer, ItemConfig> customSlots;  // 自定义槽位（槽位: ItemConfig）
+    private Map<Integer, top.arctain.snowTerritory.utils.GuiSlotUtils.SlotItem> customSlots;  // 自定义槽位（槽位: Item配置）
     
     // 确认按钮Lore配置
     private String confirmButtonLoreClickHint;
@@ -147,83 +145,12 @@ public class ReinforceConfigManager {
 
         // 获取所有功能槽位集合（自定义槽位不能覆盖这些槽位）
         Set<Integer> functionalSlots = getFunctionalSlots();
-        
-        // 加载自定义槽位（支持16进制颜色，例如 &x&F&F&0&0&0&0）
-        // 支持范围表达式，例如: 0-5 表示槽位 0 到 5
-        // 注意: 自定义槽位优先级最低，不会覆盖功能槽位
-        if (config.getConfigurationSection("gui.custom-slots") != null) {
-            for (String key : config.getConfigurationSection("gui.custom-slots").getKeys(false)) {
-                try {
-                    String material = config.getString("gui.custom-slots." + key + ".material", "GLASS_PANE");
-                    String name = config.getString("gui.custom-slots." + key + ".name", "");
-                    List<String> lore = config.getStringList("gui.custom-slots." + key + ".lore");
-                    
-                    Material mat;
-                    try {
-                        mat = Material.valueOf(material.toUpperCase());
-                    } catch (IllegalArgumentException e) {
-                        MessageUtils.logWarning("无效的材料类型: " + material + " (槽位: " + key + ")");
-                        continue;
-                    }
-                    
-                    ItemConfig itemConfig = new ItemConfig(mat, name, lore);
-                    
-                    // 检查是否为范围表达式 (例如: 0-5)
-                    if (key.contains("-")) {
-                        String[] parts = key.split("-", 2);
-                        if (parts.length == 2) {
-                            try {
-                                int startSlot = Integer.parseInt(parts[0].trim());
-                                int endSlot = Integer.parseInt(parts[1].trim());
-                                
-                                // 确保范围有效
-                                if (startSlot < 0 || endSlot < 0) {
-                                    MessageUtils.logWarning("槽位范围不能为负数: " + key);
-                                    continue;
-                                }
-                                
-                                if (startSlot > endSlot) {
-                                    // 如果起始大于结束，交换它们
-                                    int temp = startSlot;
-                                    startSlot = endSlot;
-                                    endSlot = temp;
-                                }
-                                
-                                // 为范围内的每个槽位应用配置（跳过功能槽位）
-                                int skippedCount = 0;
-                                for (int slot = startSlot; slot <= endSlot; slot++) {
-                                    if (functionalSlots.contains(slot)) {
-                                        skippedCount++;
-                                        continue; // 跳过功能槽位
-                                    }
-                                    customSlots.put(slot, itemConfig);
-                                }
-                                
-                                if (skippedCount > 0) {
-                                    MessageUtils.logInfo("已加载槽位范围: " + key + " (槽位 " + startSlot + " 到 " + endSlot + "，跳过 " + skippedCount + " 个功能槽位)");
-                                } else {
-                                    MessageUtils.logInfo("已加载槽位范围: " + key + " (槽位 " + startSlot + " 到 " + endSlot + ")");
-                                }
-                            } catch (NumberFormatException e) {
-                                MessageUtils.logWarning("无效的槽位范围格式: " + key + " (应为: 起始-结束，例如: 0-5)");
-                            }
-                        } else {
-                            MessageUtils.logWarning("无效的槽位范围格式: " + key + " (应为: 起始-结束，例如: 0-5)");
-                        }
-                    } else {
-                        // 单个槽位
-                        int slot = Integer.parseInt(key);
-                        if (functionalSlots.contains(slot)) {
-                            MessageUtils.logWarning("槽位 " + slot + " 是功能槽位，已跳过自定义配置");
-                            continue; // 跳过功能槽位
-                        }
-                        customSlots.put(slot, itemConfig);
-                    }
-                } catch (NumberFormatException e) {
-                    MessageUtils.logWarning("无效的槽位号: " + key);
-                }
-            }
-        }
+        this.customSlots = top.arctain.snowTerritory.utils.GuiSlotUtils.loadSlotItems(
+                config,
+                "gui.custom-slots",
+                functionalSlots,
+                guiSize
+        );
 
         // 加载消息配置
         loadMessages();
@@ -327,19 +254,6 @@ public class ReinforceConfigManager {
     }
 
     // 内部类：自定义物品配置
-    @Getter
-    public static class ItemConfig {
-        private final Material material;
-        private final String name;
-        private final List<String> lore;
-
-        public ItemConfig(Material material, String name, List<String> lore) {
-            this.material = material;
-            this.name = name;
-            this.lore = lore != null ? lore : new ArrayList<>();
-        }
-    }
-
     // 获取指定等级的成功概率（如果不存在，使用默认或最低）
     public double getSuccessRateForLevel(int level) {
         return reinforceSuccessRates.getOrDefault(level, 0.5);  // 默认0.5，如果未配置

@@ -30,24 +30,6 @@ public final class DefaultFiles {
               default-language: zh_CN
             """;
 
-    public static final String DEFAULT_WHITELIST = """
-            MM_DROPS:
-              平原荒骨:
-                lore:
-                  - "test"
-                  - "test2"
-                default_max: 256
-              平原腐肉:
-                lore:
-                  - "test"
-                  - "test2"
-                default_max: 256
-              铁锭:
-                lore:
-                  - "test"
-                default_max: 256
-            """;
-
     public static final String DEFAULT_SIZE = """
             levels:
               - perm: st.loot.size.1
@@ -64,6 +46,46 @@ public final class DefaultFiles {
                 per_item_max: 256
               - perm: st.loot.stack.2
                 per_item_max: 512
+            """;
+
+    // EnderStorage GUI 默认配置（plugins/SnowTerritory/ender-storage/gui.yml）
+    public static final String DEFAULT_GUI = """
+            gui:
+              # GUI标题 支持chatcolor解析
+              title: "[&{#3ab835}&l末影&{#6dc97f}&l存储&8]"
+
+              # GUI大小 (必须是9的倍数，如9, 18, 27, 36, 45, 54)
+              size: 54
+
+              # 槽位配置 (0-53)
+              slots:
+                # 上一页
+                previous-page: 48
+                # 下一页
+                next-page: 50
+
+                # 物品槽位 (支持范围表达式)
+                material-slots: [ "28-34", "37-43" ]
+
+                # 装饰槽位
+                decoration-slots:
+                  "0-17":
+                    material: "GREEN_STAINED_GLASS_PANE"
+                    name: "&{#d6fff6}&m-&{#fffad6}&m=&{#FFFFFF}&m-&8 [&{#3ab835}末影&{#6dc97f}存储&8] &{#FFFFFF}&m-&{#fffad6}&m=&{#d6fff6}&m-"
+                    lore:
+                      - ""
+                  "18-53":
+                    material: "BLACK_STAINED_GLASS_PANE"
+                    name: "&{#d6fff6}&m-&{#fffad6}&m=&{#FFFFFF}&m-&8 [&{#3ab835}末影&{#6dc97f}存储&8] &{#FFFFFF}&m-&{#fffad6}&m=&{#d6fff6}&m-"
+                    lore:
+                      - ""
+                
+              # 物品顺序与分组（只展示出现在这里并且在白名单中的物品）
+              materials:
+                MM_DROPS:
+                  优质狼皮: 256
+                  瓶装兽血: 256
+                  狼王獠牙: 128
             """;
 
     public static final String DEFAULT_MESSAGES_ZH = """

@@ -83,15 +83,22 @@ public class Main extends JavaPlugin {
             return false;
         }
 
-        // Vault 和 PlayerPoints 是可选的
+        // Vault、PlayerPoints 和 MythicMobs 是可选的
         boolean hasVault = getServer().getPluginManager().getPlugin("Vault") != null;
         boolean hasPlayerPoints = getServer().getPluginManager().getPlugin("PlayerPoints") != null;
+        boolean hasMythicMobs = getServer().getPluginManager().getPlugin("MythicMobs") != null;
 
         if (!hasVault) {
             MessageUtils.logWarning("未找到 Vault 插件，金币消耗功能将不可用。");
         }
         if (!hasPlayerPoints) {
             MessageUtils.logWarning("未找到 PlayerPoints 插件，点券消耗功能将不可用。");
+        }
+        if (hasMythicMobs) {
+            String mythicMobsVersion = getServer().getPluginManager().getPlugin("MythicMobs").getDescription().getVersion();
+            MessageUtils.logSuccess("已检测到 MythicMobs " + mythicMobsVersion + "，战利品自动拾取功能已启用。");
+        } else {
+            MessageUtils.logInfo("未找到 MythicMobs 插件，将仅支持原版生物掉落处理。");
         }
 
         return true;

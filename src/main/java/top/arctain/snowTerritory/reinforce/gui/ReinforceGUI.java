@@ -175,25 +175,8 @@ public class ReinforceGUI {
         // 从配置创建GUI
         Inventory gui = Bukkit.createInventory(null, config.getGuiSize(), ColorUtils.colorize(config.getGuiTitle()));
 
-        // 添加自定义槽位（装饰等）
-        config.getCustomSlots().forEach((slot, itemConfig) -> {
-            ItemStack customItem = new ItemStack(itemConfig.getMaterial());
-            ItemMeta meta = customItem.getItemMeta();
-            if (meta != null) {
-                if (itemConfig.getName() != null && !itemConfig.getName().isEmpty()) {
-                    meta.setDisplayName(MessageUtils.colorize(itemConfig.getName()));
-                }
-                if (itemConfig.getLore() != null && !itemConfig.getLore().isEmpty()) {
-                    List<String> lore = new ArrayList<>();
-                    for (String line : itemConfig.getLore()) {
-                        lore.add(MessageUtils.colorize(line));
-                    }
-                    meta.setLore(lore);
-                }
-                customItem.setItemMeta(meta);
-            }
-            gui.setItem(slot, customItem);
-        });
+        // 添加自定义槽位（装饰等） - 复用通用工具
+        top.arctain.snowTerritory.utils.GuiSlotUtils.applySlotItems(gui, config.getCustomSlots(), true);
 
         // 添加确认和取消按钮（可点击）
         ItemStack confirmButton = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);

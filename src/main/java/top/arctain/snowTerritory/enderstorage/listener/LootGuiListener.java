@@ -102,7 +102,7 @@ public class LootGuiListener implements Listener {
         if (type == ClickType.LEFT || type == ClickType.RIGHT) {
             return 8;
         }
-        if (type == ClickType.SHIFT_LEFT || type == ClickType.SHIFT_RIGHT) {
+        if (type == ClickType.SHIFT_LEFT || type == ClickType.MIDDLE) {
             return 64;
         }
         return 0;

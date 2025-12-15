@@ -50,30 +50,30 @@ public class LootStorageServiceImpl implements LootStorageService {
 
     private Map<String, WhitelistEntry> loadWhitelist() {
         Map<String, WhitelistEntry> result = new HashMap<>();
-        FileConfiguration cfg = configManager.getWhitelistConfig();
-        // 第一级key是mmoType
-        for (String mmoType : cfg.getKeys(false)) {
-            if (!cfg.isConfigurationSection(mmoType)) {
-                continue;
-            }
-            org.bukkit.configuration.ConfigurationSection typeSection = cfg.getConfigurationSection(mmoType);
-            if (typeSection == null) {
-                continue;
-            }
-            // 第二级key是mmoItemId
+        FileConfiguration guiCfg = configManager.getGuiConfig();
+        if (guiCfg == null) {
+            return result;
+        }
+
+        // 从 gui.yml 的 gui.materials 节点构建白名单：
+        // gui:
+        //   materials:
+        //     TYPE:
+        //       Name: maxStack
+        org.bukkit.configuration.ConfigurationSection root = guiCfg.getConfigurationSection("gui.materials");
+        if (root == null) {
+            return result;
+        }
+
+        for (String mmoType : root.getKeys(false)) {
+            org.bukkit.configuration.ConfigurationSection typeSection = root.getConfigurationSection(mmoType);
+            if (typeSection == null) continue;
+
             for (String mmoItemId : typeSection.getKeys(false)) {
-                if (!typeSection.isConfigurationSection(mmoItemId)) {
-                    continue;
-                }
-                org.bukkit.configuration.ConfigurationSection itemSection = typeSection.getConfigurationSection(mmoItemId);
-                if (itemSection == null) {
-                    continue;
-                }
                 // 生成key为"mmoType:mmoItemId"格式
                 String key = mmoType + ":" + mmoItemId;
-                int max = itemSection.getInt("default_max", 256);
-                // 不需要type和display，保持和对应物品相同
-                // display使用mmoItemId，material设为null（因为MMOItems物品不需要material）
+                int max = typeSection.getInt(mmoItemId, 256);
+                // display 使用 mmoItemId，material 设为 null（MMOItems 物品不需要 material）
                 result.put(key, new WhitelistEntry(key, mmoItemId, mmoType, mmoItemId, null, max));
             }
         }
