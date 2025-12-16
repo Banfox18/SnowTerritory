@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import top.arctain.snowTerritory.Main;
 import top.arctain.snowTerritory.config.PluginConfig;
 import top.arctain.snowTerritory.enderstorage.EnderStorageModule;
+import top.arctain.snowTerritory.quest.QuestModule;
 import top.arctain.snowTerritory.reinforce.ReinforceModule;
 import top.arctain.snowTerritory.utils.MessageUtils;
 
@@ -21,6 +22,7 @@ public class SnowTerritoryCommand implements CommandExecutor, TabCompleter {
     private final ItemIdCommand itemIdCommand;
     private final ReinforceModule reinforceModule;
     private final EnderStorageModule enderModule;
+    private final QuestModule questModule;
 
     public SnowTerritoryCommand(Main plugin, PluginConfig config, ReinforceModule reinforceModule) {
         this.plugin = plugin;
@@ -28,6 +30,7 @@ public class SnowTerritoryCommand implements CommandExecutor, TabCompleter {
         this.itemIdCommand = new ItemIdCommand();
         this.reinforceModule = reinforceModule;
         this.enderModule = plugin.getEnderStorageModule();
+        this.questModule = plugin.getQuestModule();
     }
 
     @Override
@@ -48,6 +51,8 @@ public class SnowTerritoryCommand implements CommandExecutor, TabCompleter {
             return handleCheckID(sender, args);
         } else if (subCommand.equals("es") || subCommand.equals("enderstorage")) {
             return handleEnderStorage(sender, args);
+        } else if (subCommand.equals("q") || subCommand.equals("quest")) {
+            return handleQuest(sender, args);
         } else {
             MessageUtils.sendError(sender, "command.unknown-command", "&c✗ &f未知的子命令！输入 /{label} 查看帮助。", "label", label);
             return true;
@@ -91,6 +96,10 @@ public class SnowTerritoryCommand implements CommandExecutor, TabCompleter {
         // 同步重载 EnderStorage 模块
         if (plugin.getEnderStorageModule() != null) {
             plugin.getEnderStorageModule().reload();
+        }
+        // 同步重载 Quest 模块
+        if (plugin.getQuestModule() != null) {
+            plugin.getQuestModule().reload();
         }
         MessageUtils.sendSuccess(sender, "command.reload-success", "&a✓ &f插件配置已重载！");
         return true;
@@ -146,6 +155,22 @@ public class SnowTerritoryCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    /**
+     * 处理 Quest 子命令: /sn q ...
+     */
+    private boolean handleQuest(CommandSender sender, String[] args) {
+        if (questModule == null || questModule.getQuestCommand() == null) {
+            MessageUtils.sendError(sender, "command.feature-missing", "&c✗ &fQuest 功能未启用");
+            return true;
+        }
+        // 去除首个 "q" 或 "quest"
+        String[] forward = new String[Math.max(0, args.length - 1)];
+        if (args.length > 1) {
+            System.arraycopy(args, 1, forward, 0, args.length - 1);
+        }
+        return questModule.getQuestCommand().onCommand(sender, null, "snowterritory quest", forward);
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
@@ -164,6 +189,9 @@ public class SnowTerritoryCommand implements CommandExecutor, TabCompleter {
             if ("es".startsWith(input) || "enderstorage".startsWith(input)) {
                 completions.add("es");
             }
+            if ("q".startsWith(input) || "quest".startsWith(input)) {
+                completions.add("quest");
+            }
             
             return completions;
         }
@@ -174,6 +202,13 @@ public class SnowTerritoryCommand implements CommandExecutor, TabCompleter {
             subs.add("reload");
             subs.add("give");
             return subs;
+        }
+        
+        // /sn q 子命令补全
+        if (args.length == 2 && (args[0].equalsIgnoreCase("q") || args[0].equalsIgnoreCase("quest"))) {
+            if (questModule != null && questModule.getQuestCommand() != null) {
+                return questModule.getQuestCommand().onTabComplete(sender, null, "quest", new String[]{args[1]});
+            }
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("es") && args[1].equalsIgnoreCase("give")) {
             List<String> playerNames = new ArrayList<>();
