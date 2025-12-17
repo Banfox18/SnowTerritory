@@ -38,9 +38,9 @@ public final class DefaultFiles {
               currency:
                 amount: 1
                 type: CURRENCY
-                stack-0: 星尘-0
-                stack-1: 星尘-1
-              # 消息配置
+                stack-0: SD_0
+                stack-1: SD_1
+                stack-2: SD_2
               messages:
                 # 任务完成提示 (%rating%=评级, %multiplier%=倍数, %questpoint%=成就点, %currency%=货币数量)
                 completion: "&a✓ &f任务完成！评级: &e%rating% &7(奖励倍数: %multiplier%x) &f获得: &b%questpoint% 成就点 &f+ &e%currency% 货币"

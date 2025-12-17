@@ -1,19 +1,20 @@
 package top.arctain.snowTerritory.quest.service;
 
-import net.Indyuce.mmoitems.MMOItems;
-import net.Indyuce.mmoitems.api.item.mmoitem.MMOItem;
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import top.arctain.snowTerritory.Main;
 import top.arctain.snowTerritory.quest.config.QuestConfigManager;
 import top.arctain.snowTerritory.quest.data.Quest;
 import top.arctain.snowTerritory.quest.data.QuestReleaseMethod;
 import top.arctain.snowTerritory.quest.data.QuestStatus;
 import top.arctain.snowTerritory.quest.data.QuestType;
-import top.arctain.snowTerritory.quest.utils.QuestUtils;
+import top.arctain.snowTerritory.quest.service.generator.MaterialQuestGenerator;
+import top.arctain.snowTerritory.quest.service.generator.QuestGenerator;
+import top.arctain.snowTerritory.quest.service.reward.DefaultRewardDistributor;
+import top.arctain.snowTerritory.quest.service.reward.RewardDistributor;
+import top.arctain.snowTerritory.quest.service.scheduler.BountyScheduler;
+import top.arctain.snowTerritory.quest.service.scheduler.DefaultBountyScheduler;
 import top.arctain.snowTerritory.utils.ColorUtils;
 import top.arctain.snowTerritory.utils.MessageUtils;
 
@@ -23,93 +24,137 @@ import java.util.stream.Collectors;
 
 /**
  * 任务服务实现
+ * 
+ * <p>职责：协调任务的生命周期管理，包括接取、进度更新、完成和奖励发放。
+ * 具体的任务生成、奖励计算、调度等逻辑委托给专门的组件处理。
  */
 public class QuestServiceImpl implements QuestService {
-
+    
     private final Main plugin;
     private final QuestConfigManager configManager;
     
-    // 玩家任务映射: playerId -> List<Quest>
+    // 可替换的组件
+    private final Map<QuestType, QuestGenerator> generators;
+    private final RewardDistributor rewardDistributor;
+    private final BountyScheduler bountyScheduler;
+    
+    // 数据存储
     private final Map<UUID, List<Quest>> playerQuests = new ConcurrentHashMap<>();
-    
-    // 悬赏任务列表
     private final List<Quest> bountyQuests = Collections.synchronizedList(new ArrayList<>());
-    
-    // 悬赏任务调度器任务ID
-    private int bountyTaskId = -1;
     
     public QuestServiceImpl(Main plugin, QuestConfigManager configManager) {
         this.plugin = plugin;
         this.configManager = configManager;
+        
+        // 初始化组件
+        this.generators = initializeGenerators();
+        this.rewardDistributor = new DefaultRewardDistributor(configManager);
+        this.bountyScheduler = new DefaultBountyScheduler(plugin, configManager, this::publishBountyQuest);
     }
-
+    
+    /**
+     * 用于测试的构造函数，允许注入依赖
+     */
+    QuestServiceImpl(Main plugin, QuestConfigManager configManager,
+                     Map<QuestType, QuestGenerator> generators,
+                     RewardDistributor rewardDistributor,
+                     BountyScheduler bountyScheduler) {
+        this.plugin = plugin;
+        this.configManager = configManager;
+        this.generators = generators;
+        this.rewardDistributor = rewardDistributor;
+        this.bountyScheduler = bountyScheduler;
+    }
+    
+    private Map<QuestType, QuestGenerator> initializeGenerators() {
+        Map<QuestType, QuestGenerator> map = new EnumMap<>(QuestType.class);
+        map.put(QuestType.MATERIAL, new MaterialQuestGenerator(configManager));
+        // TODO: 添加 KillQuestGenerator
+        return map;
+    }
+    
+    // ==================== 生命周期管理 ====================
+    
     @Override
     public void initialize() {
-        startBountyScheduler();
+        bountyScheduler.start();
     }
-
+    
     @Override
     public void shutdown() {
-        stopBountyScheduler();
+        bountyScheduler.stop();
         playerQuests.clear();
         bountyQuests.clear();
     }
-
+    
     @Override
     public void reload() {
-        stopBountyScheduler();
+        bountyScheduler.stop();
         configManager.loadAll();
-        startBountyScheduler();
+        bountyScheduler.start();
     }
-
+    
+    // ==================== 普通任务操作 ====================
+    
     @Override
     public Quest acceptNormalQuest(Player player, QuestType type) {
+        Objects.requireNonNull(player, "player不能为null");
+        Objects.requireNonNull(type, "type不能为null");
+        
         UUID playerId = player.getUniqueId();
         
-        // 检查是否已有同类型的活跃任务
-        Quest existing = getActiveQuest(playerId, type);
-        if (existing != null) {
-            return null; // 已有活跃任务
+        // 检查是否已有同类型活跃任务
+        if (getActiveQuest(playerId, type) != null) {
+            return null;
         }
         
-        // 生成新任务
         Quest quest = generateQuest(playerId, type, QuestReleaseMethod.NORMAL);
         if (quest == null) {
             return null;
         }
         
-        // 添加到玩家任务列表
         playerQuests.computeIfAbsent(playerId, k -> new ArrayList<>()).add(quest);
-        
         return quest;
     }
-
+    
     @Override
     public List<Quest> getActiveQuests(UUID playerId) {
-        List<Quest> quests = playerQuests.getOrDefault(playerId, new ArrayList<>());
-        // 过滤出活跃且未过期的任务
-        return quests.stream()
-                .filter(q -> q.getStatus() == QuestStatus.ACTIVE && !q.isExpired())
+        Objects.requireNonNull(playerId, "playerId不能为null");
+        
+        return playerQuests.getOrDefault(playerId, Collections.emptyList()).stream()
+                .filter(this::isActiveAndNotExpired)
                 .collect(Collectors.toList());
     }
-
+    
     @Override
     public Quest getActiveQuest(UUID playerId, QuestType type) {
-        List<Quest> quests = getActiveQuests(playerId);
-        return quests.stream()
+        Objects.requireNonNull(playerId, "playerId不能为null");
+        Objects.requireNonNull(type, "type不能为null");
+        
+        return getActiveQuests(playerId).stream()
                 .filter(q -> q.getType() == type)
                 .findFirst()
                 .orElse(null);
     }
-
+    
+    // ==================== 任务进度更新 ====================
+    
     @Override
     public boolean updateQuestProgress(UUID playerId, String materialKey, int amount) {
-        if (updatePlayerQuestProgress(playerId, materialKey, amount)) {
+        Objects.requireNonNull(materialKey, "materialKey不能为null");
+        if (amount <= 0) {
+            return false;
+        }
+        
+        // 优先更新玩家个人任务
+        if (playerId != null && updatePlayerQuestProgress(playerId, materialKey, amount)) {
             return true;
         }
+        
+        // 其次更新悬赏任务
         return updateBountyQuestProgress(materialKey, amount);
     }
-
+    
     private boolean updatePlayerQuestProgress(UUID playerId, String materialKey, int amount) {
         List<Quest> quests = playerQuests.get(playerId);
         if (quests == null) {
@@ -122,22 +167,17 @@ public class QuestServiceImpl implements QuestService {
                 continue;
             }
             
-            Quest updated = updateQuestProgress(quest, amount);
+            Quest updated = applyProgress(quest, amount);
             quests.set(i, updated);
             
             if (updated.isCompleted()) {
                 completeQuest(playerId, updated.getQuestId());
             }
-            
             return true;
         }
-        
         return false;
     }
-
-    /**
-     * 更新悬赏任务进度
-     */
+    
     private boolean updateBountyQuestProgress(String materialKey, int amount) {
         synchronized (bountyQuests) {
             for (int i = 0; i < bountyQuests.size(); i++) {
@@ -146,111 +186,103 @@ public class QuestServiceImpl implements QuestService {
                     continue;
                 }
                 
-                Quest updated = updateQuestProgress(quest, amount);
-                bountyQuests.set(i, updated);
+                bountyQuests.set(i, applyProgress(quest, amount));
                 return true;
             }
         }
         return false;
     }
-
-    /**
-     * 检查任务是否匹配材料任务条件
-     */
+    
     private boolean isMatchingMaterialQuest(Quest quest, String materialKey) {
-        return quest.getStatus() == QuestStatus.ACTIVE
+        return isActiveAndNotExpired(quest)
                 && quest.getType() == QuestType.MATERIAL
-                && quest.getMaterialKey().equals(materialKey)
-                && !quest.isExpired();
+                && quest.getMaterialKey().equals(materialKey);
     }
-
-    /**
-     * 更新任务进度并返回新任务对象
-     */
-    private Quest updateQuestProgress(Quest quest, int amount) {
+    
+    private Quest applyProgress(Quest quest, int amount) {
         int newAmount = Math.min(quest.getCurrentAmount() + amount, quest.getRequiredAmount());
         return quest.withProgress(newAmount);
     }
-
+    
+    private boolean isActiveAndNotExpired(Quest quest) {
+        return quest.getStatus() == QuestStatus.ACTIVE && !quest.isExpired();
+    }
+    
+    // ==================== 任务完成 ====================
+    
     @Override
     public boolean completeQuest(UUID playerId, UUID questId) {
+        Objects.requireNonNull(playerId, "playerId不能为null");
+        Objects.requireNonNull(questId, "questId不能为null");
+        
         List<Quest> quests = playerQuests.get(playerId);
         if (quests == null) {
             return false;
         }
         
         Quest quest = findQuestById(quests, questId);
-        if (quest == null || quest.getStatus() != QuestStatus.ACTIVE) {
-            return false;
-        }
-        
-        if (!quest.isCompleted()) {
+        if (quest == null || quest.getStatus() != QuestStatus.ACTIVE || !quest.isCompleted()) {
             return false;
         }
         
         quest.setStatus(QuestStatus.COMPLETED);
-        distributeRewards(Bukkit.getPlayer(playerId), quest);
+        
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null) {
+            rewardDistributor.distribute(player, quest);
+        }
         return true;
     }
-
-    /**
-     * 根据任务ID查找任务
-     */
+    
     private Quest findQuestById(List<Quest> quests, UUID questId) {
         return quests.stream()
                 .filter(q -> q.getQuestId().equals(questId))
                 .findFirst()
                 .orElse(null);
     }
-
+    
+    // ==================== 悬赏任务操作 ====================
+    
     @Override
     public List<Quest> getActiveBountyQuests() {
         synchronized (bountyQuests) {
             return bountyQuests.stream()
-                    .filter(q -> q.getStatus() == QuestStatus.ACTIVE && !q.isExpired())
+                    .filter(this::isActiveAndNotExpired)
                     .collect(Collectors.toList());
         }
     }
-
+    
     @Override
     public boolean completeBountyQuest(Player player, UUID questId) {
+        Objects.requireNonNull(player, "player不能为null");
+        Objects.requireNonNull(questId, "questId不能为null");
+        
         Quest quest = findBountyQuestById(questId);
-        if (quest == null || quest.getStatus() != QuestStatus.ACTIVE) {
+        if (quest == null || quest.getStatus() != QuestStatus.ACTIVE || !quest.isCompleted()) {
             return false;
         }
         
-        if (!quest.isCompleted()) {
-            return false;
-        }
-        
-        distributeRewards(player, quest);
+        rewardDistributor.distribute(player, quest);
         return true;
     }
-
+    
     @Override
     public int claimCompletedBountyQuests(Player player) {
+        Objects.requireNonNull(player, "player不能为null");
+        
         int claimed = 0;
         synchronized (bountyQuests) {
             for (Quest quest : bountyQuests) {
-                claimed = claimSingleBountyQuest(player, quest, claimed);
+                if (isActiveAndNotExpired(quest) && quest.isCompleted()) {
+                    rewardDistributor.distribute(player, quest);
+                    quest.setStatus(QuestStatus.COMPLETED);
+                    claimed++;
+                }
             }
         }
         return claimed;
     }
-
-    private int claimSingleBountyQuest(Player player, Quest quest, int claimed) {
-        if (isBountyQuestCompleted(quest)) {
-            distributeRewards(player, quest);
-            quest.setStatus(QuestStatus.COMPLETED);
-            claimed++;
-        }
-        return claimed;
-    }
-
-    private boolean isBountyQuestCompleted(Quest quest) {
-        return quest.getStatus() == QuestStatus.ACTIVE && quest.isCompleted() && !quest.isExpired();
-    }
-
+    
     private Quest findBountyQuestById(UUID questId) {
         synchronized (bountyQuests) {
             return bountyQuests.stream()
@@ -259,53 +291,22 @@ public class QuestServiceImpl implements QuestService {
                     .orElse(null);
         }
     }
-
+    
+    // ==================== 悬赏调度 ====================
+    
     @Override
     public void startBountyScheduler() {
-        stopBountyScheduler();
-        
-        FileConfiguration bountyConfig = configManager.getBountyConfig();
-        if (bountyConfig == null) {
-            return;
-        }
-        
-        int minInterval = convertMinutesToTicks(bountyConfig.getInt("bounty.interval-min", 20));
-        int maxInterval = convertMinutesToTicks(bountyConfig.getInt("bounty.interval-max", 40));
-        
-        if (!isValidInterval(minInterval, maxInterval)) {
-            MessageUtils.logWarning("悬赏任务间隔配置无效，已禁用悬赏任务发布");
-            return;
-        }
-        
-        scheduleNextBounty(minInterval, maxInterval);
+        bountyScheduler.start();
     }
-
-    private int convertMinutesToTicks(int minutes) {
-        return minutes * 60 * 20;
-    }
-
-    private boolean isValidInterval(int minInterval, int maxInterval) {
-        return minInterval > 0 && maxInterval > 0 && minInterval <= maxInterval;
-    }
-
+    
     @Override
     public void stopBountyScheduler() {
-        if (bountyTaskId != -1) {
-            Bukkit.getScheduler().cancelTask(bountyTaskId);
-            bountyTaskId = -1;
-        }
+        bountyScheduler.stop();
     }
-
-    private void scheduleNextBounty(int minInterval, int maxInterval) {
-        Random random = new Random();
-        int delay = minInterval + random.nextInt(maxInterval - minInterval + 1);
-        
-        bountyTaskId = Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            publishBountyQuest();
-            scheduleNextBounty(minInterval, maxInterval); // 递归调度下一个
-        }, delay).getTaskId();
-    }
-
+    
+    /**
+     * 发布悬赏任务（由调度器回调）
+     */
     private void publishBountyQuest() {
         FileConfiguration bountyConfig = configManager.getBountyConfig();
         if (bountyConfig == null) {
@@ -325,292 +326,64 @@ public class QuestServiceImpl implements QuestService {
         addBountyQuest(bounty);
         broadcastBountyQuest(bounty);
     }
-
-    private QuestType determineBountyQuestType(FileConfiguration bountyConfig) {
-        String allowedTypes = bountyConfig.getString("bounty.allowed-types", "MATERIAL");
+    
+    private QuestType determineBountyQuestType(FileConfiguration config) {
+        String allowedTypes = config.getString("bounty.allowed-types", "MATERIAL");
         
-        if (allowedTypes.equalsIgnoreCase("MATERIAL")) {
-            return QuestType.MATERIAL;
-        }
-        
-        if (allowedTypes.equalsIgnoreCase("KILL")) {
-            // TODO: 实现击杀任务
-            return null;
-        }
-        
-        if (allowedTypes.equalsIgnoreCase("BOTH")) {
-            QuestType type = new Random().nextBoolean() ? QuestType.MATERIAL : QuestType.KILL;
-            if (type == QuestType.KILL) {
-                // TODO: 实现击杀任务
+        switch (allowedTypes.toUpperCase()) {
+            case "MATERIAL":
+                return QuestType.MATERIAL;
+            case "KILL":
+                // TODO: 实现击杀任务后返回 QuestType.KILL
                 return null;
-            }
-            return type;
+            case "BOTH":
+                QuestType type = new Random().nextBoolean() ? QuestType.MATERIAL : QuestType.KILL;
+                return type == QuestType.KILL ? null : type; // TODO: 移除null判断
+            default:
+                return QuestType.MATERIAL;
         }
-        
-        return QuestType.MATERIAL;
     }
-
+    
     private void addBountyQuest(Quest quest) {
         synchronized (bountyQuests) {
+            // 移除旧的活跃悬赏任务，保持只有一个活跃悬赏
             bountyQuests.removeIf(q -> q.getStatus() == QuestStatus.ACTIVE);
             bountyQuests.add(quest);
         }
     }
-
+    
     private void broadcastBountyQuest(Quest quest) {
         String message = formatBountyAnnouncement(quest);
         String colored = ColorUtils.colorize(message);
         
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            player.sendMessage(colored);
-        }
-        
+        Bukkit.getOnlinePlayers().forEach(p -> p.sendMessage(colored));
         MessageUtils.logInfo("悬赏任务已发布: " + quest.getMaterialKey() + " x" + quest.getRequiredAmount());
     }
-
+    
     private String formatBountyAnnouncement(Quest quest) {
         FileConfiguration bountyConfig = configManager.getBountyConfig();
-        String template = bountyConfig.getString("bounty.messages.announcement", 
+        String template = bountyConfig.getString("bounty.messages.announcement",
                 "&6[悬赏任务] &e收集 %material% x%amount% &7- &f完成任务可获得丰厚奖励！");
-        String materialName = quest.getMaterialKey().split(":")[1];
-        return template.replace("%material%", materialName)
-                       .replace("%amount%", String.valueOf(quest.getRequiredAmount()));
+        
+        String materialName = extractMaterialName(quest.getMaterialKey());
+        return template
+                .replace("%material%", materialName)
+                .replace("%amount%", String.valueOf(quest.getRequiredAmount()));
     }
-
+    
+    private String extractMaterialName(String materialKey) {
+        int colonIndex = materialKey.indexOf(':');
+        return colonIndex >= 0 ? materialKey.substring(colonIndex + 1) : materialKey;
+    }
+    
+    // ==================== 任务生成 ====================
+    
     private Quest generateQuest(UUID playerId, QuestType type, QuestReleaseMethod releaseMethod) {
-        if (type == QuestType.MATERIAL) {
-            return generateMaterialQuest(playerId, releaseMethod);
-        } else if (type == QuestType.KILL) {
-            // TODO: 实现击杀任务生成
+        QuestGenerator generator = generators.get(type);
+        if (generator == null) {
+            MessageUtils.logWarning("未找到任务类型的生成器: " + type);
             return null;
         }
-        return null;
-    }
-
-    private Quest generateMaterialQuest(UUID playerId, QuestReleaseMethod releaseMethod) {
-        FileConfiguration whitelist = configManager.getMaterialsWhitelist();
-        FileConfiguration tasksMaterial = configManager.getTasksMaterial();
-        
-        if (whitelist == null || tasksMaterial == null) {
-            return null;
-        }
-        
-        ConfigurationSection materialsSection = whitelist.getConfigurationSection("materials");
-        if (materialsSection == null) {
-            return null;
-        }
-        
-        MaterialSelection selection = collectMaterials(materialsSection);
-        if (selection.isEmpty()) {
-            return null;
-        }
-        
-        String selectedKey = selectRandomMaterial(selection);
-        MaterialInfo info = selection.getInfo(selectedKey);
-        
-        int requiredAmount = generateRandomAmount(info);
-        int level = QuestUtils.calculateQuestLevel(info.materialLevel, requiredAmount);
-        long timeLimit = tasksMaterial.getLong("material.default-time-limit", 3600000);
-        
-        return createQuest(playerId, releaseMethod, selectedKey, requiredAmount, timeLimit, level);
-    }
-
-    /**
-     * 收集材料信息
-     */
-    private MaterialSelection collectMaterials(ConfigurationSection materialsSection) {
-        List<String> materialKeys = new ArrayList<>();
-        Map<String, MaterialInfo> materialInfos = new HashMap<>();
-        
-        for (String type : materialsSection.getKeys(false)) {
-            ConfigurationSection typeSection = materialsSection.getConfigurationSection(type);
-            if (typeSection == null) {
-                continue;
-            }
-            
-            collectMaterialsFromType(type, typeSection, materialKeys, materialInfos);
-        }
-        
-        return new MaterialSelection(materialKeys, materialInfos);
-    }
-
-    private void collectMaterialsFromType(String type, ConfigurationSection typeSection,
-                                          List<String> materialKeys, Map<String, MaterialInfo> materialInfos) {
-        for (String name : typeSection.getKeys(false)) {
-            String key = type + ":" + name;
-            materialKeys.add(key);
-            
-            ConfigurationSection itemSection = typeSection.getConfigurationSection(name);
-            MaterialInfo info = extractMaterialInfo(itemSection);
-            materialInfos.put(key, info);
-        }
-    }
-
-    private MaterialInfo extractMaterialInfo(ConfigurationSection itemSection) {
-        int min = itemSection != null ? itemSection.getInt("min", 16) : 16;
-        int max = itemSection != null ? itemSection.getInt("max", 256) : 256;
-        int materialLevel = itemSection != null ? itemSection.getInt("material-level", 1) : 1;
-        return new MaterialInfo(min, max, materialLevel);
-    }
-
-    private String selectRandomMaterial(MaterialSelection selection) {
-        Random random = new Random();
-        return selection.getRandomKey(random);
-    }
-
-    private int generateRandomAmount(MaterialInfo info) {
-        Random random = new Random();
-        return info.min + random.nextInt(info.max - info.min + 1);
-    }
-
-    private Quest createQuest(UUID playerId, QuestReleaseMethod releaseMethod,
-                             String materialKey, int requiredAmount, long timeLimit, int level) {
-        UUID questId = UUID.randomUUID();
-        long startTime = System.currentTimeMillis();
-        
-        return new Quest(questId, playerId, QuestType.MATERIAL, releaseMethod,
-                materialKey, requiredAmount, 0, startTime, timeLimit, level, QuestStatus.ACTIVE);
-    }
-
-    private void distributeRewards(Player player, Quest quest) {
-        if (player == null || !player.isOnline()) {
-            return;
-        }
-        
-        QuestUtils.RewardCalculation calc = calculateReward(quest);
-        giveQuestPoints(player, calc);
-        giveCurrency(player, calc);
-        sendCompletionMessage(player, quest, calc);
-    }
-
-    private QuestUtils.RewardCalculation calculateReward(Quest quest) {
-        FileConfiguration rewardsDefault = configManager.getRewardsDefault();
-        FileConfiguration rewardsLevel = configManager.getRewardsLevel();
-        FileConfiguration timeBonus = configManager.getBonusTimeBonus();
-        FileConfiguration bountyConfig = configManager.getBountyConfig();
-        
-        return QuestUtils.calculateReward(quest, rewardsDefault, rewardsLevel, timeBonus, bountyConfig);
-    }
-
-    private void giveQuestPoints(Player player, QuestUtils.RewardCalculation calc) {
-        if (calc.getQuestPoint() <= 0) {
-            return;
-        }
-        
-        String command = String.format("qp give %s %d", player.getName(), calc.getQuestPoint());
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
-    }
-
-    private void giveCurrency(Player player, QuestUtils.RewardCalculation calc) {
-        FileConfiguration rewardsDefault = configManager.getRewardsDefault();
-        int baseCurrency = rewardsDefault.getInt("default.currency.amount", 1);
-        int totalCurrency = calculateTotalCurrency(baseCurrency, calc);
-        
-        if (totalCurrency <= 0) {
-            return;
-        }
-        
-        List<QuestUtils.CurrencyStack> stacks = QuestUtils.distributeCurrency64Base(totalCurrency, rewardsDefault);
-        String currencyType = calc.getCurrencyType();
-        
-        for (QuestUtils.CurrencyStack stack : stacks) {
-            giveCurrencyStack(player, stack, currencyType);
-        }
-    }
-
-    private int calculateTotalCurrency(int baseCurrency, QuestUtils.RewardCalculation calc) {
-        double multiplier = calc.getLevelBonus() * calc.getBountyBonus() * calc.getTimeBonus();
-        return (int) Math.round(baseCurrency * multiplier);
-    }
-
-    private void giveCurrencyStack(Player player, QuestUtils.CurrencyStack stack, String currencyType) {
-        try {
-            ItemStack item = createCurrencyItem(stack, currencyType);
-            if (item == null) {
-                return;
-            }
-            
-            giveItemToPlayer(player, item);
-        } catch (Exception e) {
-            MessageUtils.logError("发放货币失败: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    private ItemStack createCurrencyItem(QuestUtils.CurrencyStack stack, String currencyType) {
-        MMOItem mmoitem = MMOItems.plugin.getMMOItem(MMOItems.plugin.getTypes().get(currencyType), stack.getItemId());
-        
-        if (mmoitem == null) {
-            MessageUtils.logWarning("货币物品不存在: " + currencyType + " " + stack.getItemId());
-            return null;
-        }
-
-        ItemStack item = mmoitem.newBuilder().build();
-        item.setAmount(stack.getCount());
-        return item;
-    }
-
-    private void giveItemToPlayer(Player player, ItemStack item) {
-        HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(item);
-        if (leftover.isEmpty()) {
-            return;
-        }
-        
-        for (ItemStack drop : leftover.values()) {
-            player.getWorld().dropItemNaturally(player.getLocation(), drop);
-        }
-    }
-
-    private void sendCompletionMessage(Player player, Quest quest, QuestUtils.RewardCalculation calc) {
-        FileConfiguration timeBonus = configManager.getBonusTimeBonus();
-        FileConfiguration rewardsDefault = configManager.getRewardsDefault();
-        String rating = QuestUtils.getTimeRatingDisplay(quest.getElapsedTime(), timeBonus);
-        double multiplier = calc.getLevelBonus() * calc.getBountyBonus() * calc.getTimeBonus();
-        
-        int totalQuestPoint = (int) Math.round(rewardsDefault.getInt("default.questpoint", 12) * multiplier);
-        int totalCurrency = (int) Math.round(rewardsDefault.getInt("default.currency.amount", 1) * multiplier);
-        
-        String template = rewardsDefault.getString("default.messages.completion", 
-                "&a✓ &f任务完成！评级: &e%rating% &7(奖励倍数: %.2fx) &f获得: &b%questpoint% 成就点 &f+ &e%currency% 货币");
-        String message = template.replace("%rating%", rating)
-                                 .replace("%multiplier%", String.format("%.2f", multiplier))
-                                 .replace("%questpoint%", String.valueOf(totalQuestPoint))
-                                 .replace("%currency%", String.valueOf(totalCurrency));
-        player.sendMessage(ColorUtils.colorize(message));
-    }
-
-    private static class MaterialInfo {
-        final int min;
-        final int max;
-        final int materialLevel;
-
-        MaterialInfo(int min, int max, int materialLevel) {
-            this.min = min;
-            this.max = max;
-            this.materialLevel = materialLevel;
-        }
-    }
-
-    private static class MaterialSelection {
-        private final List<String> materialKeys;
-        private final Map<String, MaterialInfo> materialInfos;
-
-        MaterialSelection(List<String> materialKeys, Map<String, MaterialInfo> materialInfos) {
-            this.materialKeys = materialKeys;
-            this.materialInfos = materialInfos;
-        }
-
-        boolean isEmpty() {
-            return materialKeys.isEmpty();
-        }
-
-        String getRandomKey(Random random) {
-            return materialKeys.get(random.nextInt(materialKeys.size()));
-        }
-
-        MaterialInfo getInfo(String key) {
-            return materialInfos.get(key);
-        }
+        return generator.generate(playerId, type, releaseMethod);
     }
 }
-
