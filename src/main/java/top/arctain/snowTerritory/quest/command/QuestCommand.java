@@ -134,7 +134,8 @@ public class QuestCommand implements CommandExecutor, TabCompleter {
             if (quest.isExpired()) {
                 continue;
             }
-            displayQuest(player, quest, "[悬赏] 提交材料");
+            String questType = messages.get(player, "quest-type-bounty", "[悬赏] 提交材料");
+            displayQuest(player, quest, questType);
         }
     }
 
@@ -143,7 +144,8 @@ public class QuestCommand implements CommandExecutor, TabCompleter {
             if (quest.isExpired()) {
                 continue;
             }
-            displayQuest(player, quest, "提交材料");
+            String questType = messages.get(player, "quest-type-normal", "提交材料");
+            displayQuest(player, quest, questType);
         }
     }
 

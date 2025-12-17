@@ -567,10 +567,8 @@ public class QuestServiceImpl implements QuestService {
         String rating = QuestUtils.getTimeRatingDisplay(quest.getElapsedTime(), timeBonus);
         double multiplier = calc.getLevelBonus() * calc.getBountyBonus() * calc.getTimeBonus();
         
-        int baseQuestPoint = rewardsDefault.getInt("default.questpoint", 12);
-        int totalQuestPoint = (int) Math.round(baseQuestPoint * multiplier);
-        int baseCurrency = rewardsDefault.getInt("default.currency.amount", 1);
-        int totalCurrency = (int) Math.round(baseCurrency * multiplier);
+        int totalQuestPoint = (int) Math.round(rewardsDefault.getInt("default.questpoint", 12) * multiplier);
+        int totalCurrency = (int) Math.round(rewardsDefault.getInt("default.currency.amount", 1) * multiplier);
         
         String template = rewardsDefault.getString("default.messages.completion", 
                 "&a✓ &f任务完成！评级: &e%rating% &7(奖励倍数: %.2fx) &f获得: &b%questpoint% 成就点 &f+ &e%currency% 货币");
