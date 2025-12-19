@@ -82,5 +82,10 @@ public interface QuestService {
      * 停止悬赏任务发布调度
      */
     void stopBountyScheduler();
+
+    /**
+     * 检查任务是否激活且未过期
+     */
+    boolean isActiveAndNotExpired(Quest quest);
 }
 

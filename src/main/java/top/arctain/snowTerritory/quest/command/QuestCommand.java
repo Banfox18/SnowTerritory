@@ -11,10 +11,11 @@ import top.arctain.snowTerritory.quest.data.QuestStatus;
 import top.arctain.snowTerritory.quest.data.QuestType;
 import top.arctain.snowTerritory.quest.service.QuestService;
 import top.arctain.snowTerritory.utils.MessageUtils;
+import top.arctain.snowTerritory.utils.DisplayUtils;
+import top.arctain.snowTerritory.quest.utils.QuestUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * 任务命令处理器
@@ -22,9 +23,11 @@ import java.util.UUID;
 public class QuestCommand implements CommandExecutor, TabCompleter {
 
     private final QuestService service;
+    private final QuestConfigManager configManager;
 
     public QuestCommand(org.bukkit.plugin.Plugin plugin, QuestConfigManager configManager, QuestService service) {
         this.service = service;
+        this.configManager = configManager;
     }
 
     @Override
@@ -144,19 +147,34 @@ public class QuestCommand implements CommandExecutor, TabCompleter {
         QuestStatus status = quest.getStatus();
         String statusText = getStatusText(status, quest);
         
-        // 显示任务信息和状态
+        displayQuest(player, questDesc, statusText);
+        if (service.isActiveAndNotExpired(quest)) {
+            displayQuestProgress(player, quest);
+        }
+    }
+
+    private void displayQuestProgress(Player player, Quest quest) {
+
+        String progressBar = DisplayUtils.progressBar(DisplayUtils.BarStyle.BLOCKS, 
+            "&a", "&e", "&c", 
+            quest.getCurrentAmount(), quest.getRequiredAmount(), 20)
+            + "&7 (&e" + Integer.toString(quest.getCurrentAmount()) + "&7/&e" + Integer.toString(quest.getRequiredAmount()) + "&7)";
+        MessageUtils.sendConfigMessage(player, "quest.list-progress",
+                "&7  进度: &e{progressBar}",
+                "progressBar", progressBar);
+        
+        String currentRating = QuestUtils.getTimeRatingDisplay(quest.getElapsedTime(), configManager.getBonusTimeBonus())
+        + "&7 (&e" + DisplayUtils.formatTime(quest.getElapsedTime()) + "&7)";
+        MessageUtils.sendConfigMessage(player, "quest.list-rating",
+                "&7  评级: &e{currentRating}",
+                "currentRating", currentRating);
+    }
+
+    private void displayQuest(Player player, String questDesc, String statusText) {
         MessageUtils.sendConfigMessage(player, "quest.list-item",
                 "&7- &e{quest} &7{status}",
                 "quest", questDesc,
                 "status", statusText);
-        
-        // 如果是激活状态，显示进度
-        if (status == QuestStatus.ACTIVE && !quest.isExpired()) {
-            MessageUtils.sendConfigMessage(player, "quest.list-progress",
-                    "&7  进度: &e{current}&7/&e{required}",
-                    "current", String.valueOf(quest.getCurrentAmount()),
-                    "required", String.valueOf(quest.getRequiredAmount()));
-        }
     }
     
     private String getStatusText(QuestStatus status, Quest quest) {

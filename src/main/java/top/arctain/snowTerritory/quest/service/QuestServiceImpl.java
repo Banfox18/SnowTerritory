@@ -210,7 +210,8 @@ public class QuestServiceImpl implements QuestService {
         return quest.withProgress(newAmount);
     }
     
-    private boolean isActiveAndNotExpired(Quest quest) {
+    @Override
+    public boolean isActiveAndNotExpired(Quest quest) {
         return quest.getStatus() == QuestStatus.ACTIVE && !quest.isExpired();
     }
     
