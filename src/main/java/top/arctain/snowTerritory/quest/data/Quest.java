@@ -12,6 +12,7 @@ public class Quest {
     private final QuestType type;
     private final QuestReleaseMethod releaseMethod;
     private final String materialKey; // TYPE:NAME格式，例如 MM_DROPS:优质狼皮
+    private final String materialName;
     private final int requiredAmount;
     private final int currentAmount;
     private final long startTime; // 任务开始时间（毫秒）
@@ -20,13 +21,14 @@ public class Quest {
     private QuestStatus status;
     
     public Quest(UUID questId, UUID playerId, QuestType type, QuestReleaseMethod releaseMethod,
-                 String materialKey, int requiredAmount, int currentAmount,
+                 String materialKey, String materialName, int requiredAmount, int currentAmount,
                  long startTime, long timeLimit, int level, QuestStatus status) {
         this.questId = questId;
         this.playerId = playerId;
         this.type = type;
         this.releaseMethod = releaseMethod;
         this.materialKey = materialKey;
+        this.materialName = materialName;
         this.requiredAmount = requiredAmount;
         this.currentAmount = currentAmount;
         this.startTime = startTime;
@@ -53,6 +55,10 @@ public class Quest {
     
     public String getMaterialKey() {
         return materialKey;
+    }
+    
+    public String getMaterialName() {
+        return materialName;
     }
     
     public int getRequiredAmount() {
@@ -112,7 +118,7 @@ public class Quest {
      * 创建任务副本并更新进度
      */
     public Quest withProgress(int newAmount) {
-        return new Quest(questId, playerId, type, releaseMethod, materialKey,
+        return new Quest(questId, playerId, type, releaseMethod, materialKey, materialName,
                 requiredAmount, newAmount, startTime, timeLimit, level, status);
     }
 }

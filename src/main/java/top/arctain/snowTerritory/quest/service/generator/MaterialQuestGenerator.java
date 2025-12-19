@@ -1,7 +1,11 @@
 package top.arctain.snowTerritory.quest.service.generator;
 
+import net.Indyuce.mmoitems.MMOItems;
+import net.Indyuce.mmoitems.api.item.mmoitem.MMOItem;
+import net.Indyuce.mmoitems.api.Type;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.inventory.ItemStack;
 import top.arctain.snowTerritory.quest.config.QuestConfigManager;
 import top.arctain.snowTerritory.quest.data.Quest;
 import top.arctain.snowTerritory.quest.data.QuestReleaseMethod;
@@ -62,6 +66,9 @@ public class MaterialQuestGenerator implements QuestGenerator {
         int requiredAmount = selected.min + random.nextInt(selected.max - selected.min + 1);
         int level = QuestUtils.calculateQuestLevel(selected.materialLevel, requiredAmount);
         long timeLimit = tasksMaterial.getLong("material.default-time-limit", DEFAULT_TIME_LIMIT);
+
+        // 从 key (TYPE:NAME) 中解析出 type 和 name，然后获取 MMOItem 的展示名称
+        String materialName = QuestUtils.getMMOItemDisplayName(selected.key);
         
         return new Quest(
                 UUID.randomUUID(),
@@ -69,6 +76,7 @@ public class MaterialQuestGenerator implements QuestGenerator {
                 QuestType.MATERIAL,
                 releaseMethod,
                 selected.key,
+                materialName,
                 requiredAmount,
                 0,
                 System.currentTimeMillis(),
@@ -106,7 +114,7 @@ public class MaterialQuestGenerator implements QuestGenerator {
         int min = section != null ? section.getInt("min", DEFAULT_MIN_AMOUNT) : DEFAULT_MIN_AMOUNT;
         int max = section != null ? section.getInt("max", DEFAULT_MAX_AMOUNT) : DEFAULT_MAX_AMOUNT;
         int materialLevel = section != null ? section.getInt("material-level", DEFAULT_MATERIAL_LEVEL) : DEFAULT_MATERIAL_LEVEL;
-        return new MaterialEntry(key, min, max, materialLevel);
+        return new MaterialEntry(key, name, min, max, materialLevel);
     }
     
     /**
@@ -114,12 +122,14 @@ public class MaterialQuestGenerator implements QuestGenerator {
      */
     private static class MaterialEntry {
         final String key;
+        final String name;
         final int min;
         final int max;
         final int materialLevel;
         
-        MaterialEntry(String key, int min, int max, int materialLevel) {
+        MaterialEntry(String key, String name, int min, int max, int materialLevel) {
             this.key = key;
+            this.name = name;
             this.min = min;
             this.max = max;
             this.materialLevel = materialLevel;

@@ -1,9 +1,11 @@
 package top.arctain.snowTerritory.quest.utils;
 
 import net.Indyuce.mmoitems.MMOItems;
+import net.Indyuce.mmoitems.api.item.mmoitem.MMOItem;
 import net.Indyuce.mmoitems.api.Type;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import top.arctain.snowTerritory.quest.data.Quest;
 import top.arctain.snowTerritory.quest.data.QuestReleaseMethod;
 import top.arctain.snowTerritory.utils.Utils;
@@ -17,9 +19,6 @@ import java.util.Map;
  */
 public class QuestUtils {
 
-    /**
-     * 检查物品是否为 MMOItems 物品
-     */
     public static boolean isMMOItem(ItemStack item) {
         return Utils.isMMOItem(item);
     }
@@ -41,6 +40,56 @@ public class QuestUtils {
             // 忽略异常
         }
         return null;
+    }
+
+        /**
+     * 根据 key (TYPE:NAME) 获取 MMOItem 的展示名称
+     */
+    public static String getMMOItemDisplayName(String key) {
+        if (key == null || !key.contains(":")) {
+            return null;
+        }
+        
+        try {
+            String[] parts = key.split(":", 2);
+            if (parts.length != 2) {
+                return null;
+            }
+            
+            String typeId = parts[0];
+            String itemId = parts[1];
+            
+            Type type = MMOItems.plugin.getTypes().get(typeId);
+            if (type == null) {
+                return null;
+            }
+            
+            MMOItem mmoItem = MMOItems.plugin.getMMOItem(type, itemId);
+            if (mmoItem == null) {
+                return null;
+            }
+            
+            ItemStack itemStack = mmoItem.newBuilder().build();
+            return getMMOItemName(itemStack);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 获取物品的展示名称（Display Name）
+     * 优先直接从物品的 ItemMeta 中读取，这通常就是 MMOItems 生成时写入的名字
+     */
+    public static String getMMOItemName(ItemStack item) {
+        if (!isMMOItem(item)) {
+            return null;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return null;
+        }
+        String displayName = meta.getDisplayName();
+        return (displayName == null || displayName.isEmpty()) ? null : displayName;
     }
 
     /**

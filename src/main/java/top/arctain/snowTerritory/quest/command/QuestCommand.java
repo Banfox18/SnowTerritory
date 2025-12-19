@@ -120,7 +120,7 @@ public class QuestCommand implements CommandExecutor, TabCompleter {
         }
 
         MessageUtils.sendConfigMessage(player, "quest.list-header",
-                "&6=== 你的任务列表 ===");
+                "     &7========= &f进行中的任务 &7=========");
 
         displayQuests(player, allQuests);
         displayBountyQuests(player, bountyQuests);
@@ -130,19 +130,19 @@ public class QuestCommand implements CommandExecutor, TabCompleter {
 
     private void displayBountyQuests(Player player, List<Quest> bountyQuests) {
         for (Quest quest : bountyQuests) {
-            displayQuest(player, quest, "[悬赏] 提交材料", true);
+            displayQuest(player, quest, "[悬赏] &{#5BBFC7}交付", true);
         }
     }
 
     private void displayQuests(Player player, List<Quest> quests) {
         for (Quest quest : quests) {
-            displayQuest(player, quest, "提交材料", false);
+            displayQuest(player, quest, "&{#5BBFC7}交付", false);
         }
     }
 
     private void displayQuest(Player player, Quest quest, String questType, boolean isBounty) {
-        String materialName = quest.getMaterialKey().split(":")[1];
-        String questDesc = String.format("%s %s x%d", questType, materialName, quest.getRequiredAmount());
+        String materialName = quest.getMaterialName();
+        String questDesc = String.format("%s %s &7x%d", questType, materialName, quest.getRequiredAmount());
         
         QuestStatus status = quest.getStatus();
         String statusText = getStatusText(status, quest);
@@ -155,24 +155,24 @@ public class QuestCommand implements CommandExecutor, TabCompleter {
 
     private void displayQuestProgress(Player player, Quest quest) {
 
-        String progressBar = DisplayUtils.progressBar(DisplayUtils.BarStyle.BLOCKS, 
-            "&a", "&e", "&c", 
+        String progressBar = DisplayUtils.progressBar(DisplayUtils.BarStyle.BARS, 
+            "&c", "&e", "&a", 
             quest.getCurrentAmount(), quest.getRequiredAmount(), 20)
             + "&7 (&e" + Integer.toString(quest.getCurrentAmount()) + "&7/&e" + Integer.toString(quest.getRequiredAmount()) + "&7)";
         MessageUtils.sendConfigMessage(player, "quest.list-progress",
-                "&7  进度: &e{progressBar}",
+                "&7  &l·&r 进度: &e{progressBar}",
                 "progressBar", progressBar);
         
         String currentRating = QuestUtils.getTimeRatingDisplay(quest.getElapsedTime(), configManager.getBonusTimeBonus())
         + "&7 (&e" + DisplayUtils.formatTime(quest.getElapsedTime()) + "&7)";
         MessageUtils.sendConfigMessage(player, "quest.list-rating",
-                "&7  评级: &e{currentRating}",
+                "&7  &l·&r 评级: &e{currentRating}",
                 "currentRating", currentRating);
     }
 
     private void displayQuest(Player player, String questDesc, String statusText) {
         MessageUtils.sendConfigMessage(player, "quest.list-item",
-                "&7- &e{quest} &7{status}",
+                "&7&l·&r {quest} &7{status}",
                 "quest", questDesc,
                 "status", statusText);
     }
