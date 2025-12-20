@@ -41,20 +41,40 @@ public class Main extends JavaPlugin {
         MessageUtils.setConfig(pluginConfig);
 
         // 初始化 Reinforce 模块
-        this.reinforceModule = new ReinforceModule(this);
-        this.reinforceModule.enable();
+        if (pluginConfig.isModuleEnabled("reinforce")) {
+            this.reinforceModule = new ReinforceModule(this);
+            this.reinforceModule.enable();
+            MessageUtils.logSuccess("强化模块已启用");
+        } else {
+            MessageUtils.logInfo("强化模块已禁用（配置文件中 modules.reinforce = false）");
+        }
 
         // 初始化 EnderStorage 模块
-        this.enderStorageModule = new EnderStorageModule(this);
-        this.enderStorageModule.enable();
+        if (pluginConfig.isModuleEnabled("enderstorage")) {
+            this.enderStorageModule = new EnderStorageModule(this);
+            this.enderStorageModule.enable();
+            MessageUtils.logSuccess("末影存储模块已启用");
+        } else {
+            MessageUtils.logInfo("末影存储模块已禁用（配置文件中 modules.enderstorage = false）");
+        }
 
         // 初始化 Quest 模块
-        this.questModule = new QuestModule(this);
-        this.questModule.enable();
+        if (pluginConfig.isModuleEnabled("quest")) {
+            this.questModule = new QuestModule(this);
+            this.questModule.enable();
+            MessageUtils.logSuccess("任务模块已启用");
+        } else {
+            MessageUtils.logInfo("任务模块已禁用（配置文件中 modules.quest = false）");
+        }
 
         // 初始化 Stocks 模块
-        this.stocksModule = new StocksModule(this);
-        this.stocksModule.enable();
+        if (pluginConfig.isModuleEnabled("stocks")) {
+            this.stocksModule = new StocksModule(this);
+            this.stocksModule.enable();
+            MessageUtils.logSuccess("股票模块已启用");
+        } else {
+            MessageUtils.logInfo("股票模块已禁用（配置文件中 modules.stocks = false）");
+        }
 
         // 注册主命令
         org.bukkit.command.PluginCommand mainCommand = getServer().getPluginCommand("snowterritory");

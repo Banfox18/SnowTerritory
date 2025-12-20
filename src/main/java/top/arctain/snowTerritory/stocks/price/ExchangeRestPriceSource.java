@@ -7,7 +7,7 @@ import top.arctain.snowTerritory.utils.MessageUtils;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
-import java.net.HttpURLConnection;
+import javax.net.ssl.HttpsURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URL;
@@ -182,12 +182,12 @@ public class ExchangeRestPriceSource implements PriceService {
             lastErrorTime.put("_debug", now);
         }
         
-        HttpURLConnection conn = null;
+        HttpsURLConnection conn = null;
         try {
             URL url = new URL(urlStr);
             // 使用 SOCKS 代理
             Proxy proxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("127.0.0.1", 21881));
-            conn = (HttpURLConnection) url.openConnection(proxy);
+            conn = (HttpsURLConnection) url.openConnection(proxy);
             conn.setRequestMethod("GET");
             conn.setConnectTimeout(15000); // 增加到15秒
             conn.setReadTimeout(15000); // 增加到15秒

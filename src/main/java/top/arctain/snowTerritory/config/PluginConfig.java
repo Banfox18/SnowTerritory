@@ -91,6 +91,21 @@ public class PluginConfig {
         return messages.getOrDefault("messages.prefix", "");
     }
 
+    /**
+     * 检查模块是否启用
+     * @param moduleName 模块名称 (reinforce, enderstorage, quest, stocks)
+     * @return 如果模块启用返回true，否则返回false
+     */
+    public boolean isModuleEnabled(String moduleName) {
+        String path = "modules." + moduleName;
+        if (config.contains(path)) {
+            return config.getBoolean(path, true);
+        }
+        // 如果配置不存在，默认启用
+        config.set(path, true);
+        return true;
+    }
+
     public void reloadConfig() {
         loadConfig();  // 重用加载逻辑进行重载
         MessageUtils.logSuccess("配置已重载");
