@@ -7,9 +7,9 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import top.arctain.snowTerritory.quest.config.QuestConfigManager;
 import top.arctain.snowTerritory.quest.data.Quest;
+import top.arctain.snowTerritory.quest.data.QuestDatabaseDao;
 import top.arctain.snowTerritory.quest.data.QuestStatus;
 import top.arctain.snowTerritory.quest.data.QuestType;
-import top.arctain.snowTerritory.quest.data.QuestReleaseMethod;
 import top.arctain.snowTerritory.quest.service.QuestService;
 import top.arctain.snowTerritory.utils.MessageUtils;
 import top.arctain.snowTerritory.utils.DisplayUtils;
@@ -25,10 +25,12 @@ public class QuestCommand implements CommandExecutor, TabCompleter {
 
     private final QuestService service;
     private final QuestConfigManager configManager;
+    private final QuestDatabaseDao databaseDao;
 
-    public QuestCommand(org.bukkit.plugin.Plugin plugin, QuestConfigManager configManager, QuestService service) {
+    public QuestCommand(org.bukkit.plugin.Plugin plugin, QuestConfigManager configManager, QuestService service, QuestDatabaseDao databaseDao) {
         this.service = service;
         this.configManager = configManager;
+        this.databaseDao = databaseDao;
     }
 
     @Override
@@ -47,6 +49,12 @@ public class QuestCommand implements CommandExecutor, TabCompleter {
             }
             case "complete", "c" -> {
                 return handleComplete(sender, args);
+            }
+            case "setlevel" -> {
+                return handleSetLevel(sender, args);
+            }
+            case "getlevel" -> {
+                return handleGetLevel(sender);
             }
             case "reload" -> {
                 if (!sender.hasPermission("st.quest.admin")) {
@@ -206,6 +214,59 @@ public class QuestCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    /**
+     * 处理设置等级上限
+     */
+    private boolean handleSetLevel(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            MessageUtils.sendConfigMessage(sender, "quest.player-only",
+                    "&c✗ &f此命令仅限玩家使用");
+            return true;
+        }
+
+        if (args.length < 2) {
+            MessageUtils.sendConfigMessage(player, "quest.setlevel-usage",
+                    "&c✗ &f用法: /quest setlevel <等级>");
+            return true;
+        }
+
+        try {
+            int level = Integer.parseInt(args[1]);
+            if (level < 1) {
+                MessageUtils.sendConfigMessage(player, "quest.setlevel-invalid",
+                        "&c✗ &f等级必须大于等于1");
+                return true;
+            }
+
+            databaseDao.setMaxMaterialLevel(player.getUniqueId(), level);
+            MessageUtils.sendConfigMessage(player, "quest.setlevel-success",
+                    "&a✓ &f已设置材料任务等级上限为: &e{level}",
+                    "level", String.valueOf(level));
+            return true;
+        } catch (NumberFormatException e) {
+            MessageUtils.sendConfigMessage(player, "quest.setlevel-invalid",
+                    "&c✗ &f无效的等级数字");
+            return true;
+        }
+    }
+
+    /**
+     * 处理查看等级上限
+     */
+    private boolean handleGetLevel(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            MessageUtils.sendConfigMessage(sender, "quest.player-only",
+                    "&c✗ &f此命令仅限玩家使用");
+            return true;
+        }
+
+        int level = databaseDao.getMaxMaterialLevel(player.getUniqueId());
+        MessageUtils.sendConfigMessage(player, "quest.getlevel-success",
+                "&a✓ &f你的材料任务等级上限: &e{level}",
+                "level", String.valueOf(level));
+        return true;
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> list = new ArrayList<>();
@@ -213,6 +274,8 @@ public class QuestCommand implements CommandExecutor, TabCompleter {
             if ("accept".startsWith(args[0].toLowerCase())) list.add("accept");
             if ("list".startsWith(args[0].toLowerCase())) list.add("list");
             if ("complete".startsWith(args[0].toLowerCase())) list.add("complete");
+            if ("setlevel".startsWith(args[0].toLowerCase())) list.add("setlevel");
+            if ("getlevel".startsWith(args[0].toLowerCase())) list.add("getlevel");
             if ("reload".startsWith(args[0].toLowerCase()) && sender.hasPermission("st.quest.admin")) {
                 list.add("reload");
             }

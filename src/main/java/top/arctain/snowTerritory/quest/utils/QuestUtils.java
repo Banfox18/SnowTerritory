@@ -116,6 +116,36 @@ public class QuestUtils {
     }
 
     /**
+     * 计算任务难度
+     * 根据需求数量计算难度(1-32)，32个等级均匀分布，从min到max线性映射
+     * 
+     * @param requiredAmount 需求数量
+     * @param min 最小数量
+     * @param max 最大数量
+     * @return 难度等级 (1-32)
+     */
+    public static int calculateDifficulty(int requiredAmount, int min, int max) {
+        if (min >= max) {
+            return 1; // 如果min >= max，返回最低难度
+        }
+        
+        // 边界处理
+        if (requiredAmount <= min) {
+            return 1;
+        }
+        if (requiredAmount >= max) {
+            return 32;
+        }
+        
+        // 线性映射：difficulty = 1 + (amount - min) * 31 / (max - min)
+        double ratio = (double)(requiredAmount - min) / (max - min);
+        int difficulty = 1 + (int)(ratio * 31.0);
+        
+        // 确保在1-32范围内
+        return Math.max(1, Math.min(32, difficulty));
+    }
+
+    /**
      * 计算时间奖励系数
      * 根据完成时间匹配time-bonus.yml中的评级
      */
@@ -188,7 +218,7 @@ public class QuestUtils {
         String currencyType = rewardsDefault.getString("default.currency.type", "CURRENCY");
         
         // 等级系数
-        double levelBonus = getLevelBonus(quest.getLevel(), rewardsLevel);
+        double levelBonus = getLevelBonus(quest.getLevel(), quest.getDifficulty(), rewardsLevel);
         
         // 悬赏系数（如果是悬赏任务）
         double bountyBonus = 1.0;
@@ -208,12 +238,11 @@ public class QuestUtils {
 
     /**
      * 获取等级系数
+     * 公式: level * difficulty
      */
-    private static double getLevelBonus(int level, FileConfiguration rewardsLevel) {
-        if (rewardsLevel == null) {
-            return 1.0;
-        }
-        return rewardsLevel.getDouble("level." + level, 1.0);
+    private static double getLevelBonus(int level, int difficulty, FileConfiguration rewardsLevel) {
+        // 使用 level * difficulty 作为等级系数
+        return level * difficulty;
     }
 
     /**

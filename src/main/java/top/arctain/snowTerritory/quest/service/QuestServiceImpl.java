@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import top.arctain.snowTerritory.Main;
 import top.arctain.snowTerritory.quest.config.QuestConfigManager;
 import top.arctain.snowTerritory.quest.data.Quest;
+import top.arctain.snowTerritory.quest.data.QuestDatabaseDao;
 import top.arctain.snowTerritory.quest.data.QuestReleaseMethod;
 import top.arctain.snowTerritory.quest.data.QuestStatus;
 import top.arctain.snowTerritory.quest.data.QuestType;
@@ -31,6 +32,7 @@ public class QuestServiceImpl implements QuestService {
     
     private final Main plugin;
     private final QuestConfigManager configManager;
+    private final QuestDatabaseDao databaseDao;
     
     // 可替换的组件
     private final Map<QuestType, QuestGenerator> generators;
@@ -41,9 +43,10 @@ public class QuestServiceImpl implements QuestService {
     private final Map<UUID, List<Quest>> playerQuests = new ConcurrentHashMap<>();
     private final List<Quest> bountyQuests = Collections.synchronizedList(new ArrayList<>());
     
-    public QuestServiceImpl(Main plugin, QuestConfigManager configManager) {
+    public QuestServiceImpl(Main plugin, QuestConfigManager configManager, QuestDatabaseDao databaseDao) {
         this.plugin = plugin;
         this.configManager = configManager;
+        this.databaseDao = databaseDao;
         
         // 初始化组件
         this.generators = initializeGenerators();
@@ -54,12 +57,13 @@ public class QuestServiceImpl implements QuestService {
     /**
      * 用于测试的构造函数，允许注入依赖
      */
-    QuestServiceImpl(Main plugin, QuestConfigManager configManager,
+    QuestServiceImpl(Main plugin, QuestConfigManager configManager, QuestDatabaseDao databaseDao,
                      Map<QuestType, QuestGenerator> generators,
                      RewardDistributor rewardDistributor,
                      BountyScheduler bountyScheduler) {
         this.plugin = plugin;
         this.configManager = configManager;
+        this.databaseDao = databaseDao;
         this.generators = generators;
         this.rewardDistributor = rewardDistributor;
         this.bountyScheduler = bountyScheduler;
@@ -67,7 +71,7 @@ public class QuestServiceImpl implements QuestService {
     
     private Map<QuestType, QuestGenerator> initializeGenerators() {
         Map<QuestType, QuestGenerator> map = new EnumMap<>(QuestType.class);
-        map.put(QuestType.MATERIAL, new MaterialQuestGenerator(configManager));
+        map.put(QuestType.MATERIAL, new MaterialQuestGenerator(configManager, databaseDao));
         // TODO: 添加 KillQuestGenerator
         return map;
     }
@@ -234,6 +238,9 @@ public class QuestServiceImpl implements QuestService {
         
         quest.setStatus(QuestStatus.COMPLETED);
         
+        // 记录完成任务到数据库
+        databaseDao.recordCompletedQuest(playerId, quest);
+        
         Player player = Bukkit.getPlayer(playerId);
         if (player != null) {
             rewardDistributor.distribute(player, quest);
@@ -269,6 +276,9 @@ public class QuestServiceImpl implements QuestService {
             return false;
         }
         
+        // 记录完成任务到数据库
+        databaseDao.recordCompletedQuest(player.getUniqueId(), quest);
+        
         rewardDistributor.distribute(player, quest);
         return true;
     }
@@ -281,6 +291,8 @@ public class QuestServiceImpl implements QuestService {
         synchronized (bountyQuests) {
             for (Quest quest : bountyQuests) {
                 if (isBountyQuestCompleted(quest)) {
+                    // 记录完成任务到数据库
+                    databaseDao.recordCompletedQuest(player.getUniqueId(), quest);
                     rewardDistributor.distribute(player, quest);
                     claimed++;
                 }

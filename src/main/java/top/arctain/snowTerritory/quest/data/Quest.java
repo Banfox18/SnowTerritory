@@ -18,11 +18,12 @@ public class Quest {
     private final long startTime; // 任务开始时间（毫秒）
     private final long timeLimit; // 时间限制（毫秒），-1表示无限制
     private final int level; // 任务等级
+    private final int difficulty; // 任务难度 (1-32)
     private QuestStatus status;
     
     public Quest(UUID questId, UUID playerId, QuestType type, QuestReleaseMethod releaseMethod,
                  String materialKey, String materialName, int requiredAmount, int currentAmount,
-                 long startTime, long timeLimit, int level, QuestStatus status) {
+                 long startTime, long timeLimit, int level, int difficulty, QuestStatus status) {
         this.questId = questId;
         this.playerId = playerId;
         this.type = type;
@@ -34,6 +35,7 @@ public class Quest {
         this.startTime = startTime;
         this.timeLimit = timeLimit;
         this.level = level;
+        this.difficulty = difficulty;
         this.status = status;
     }
     
@@ -81,6 +83,10 @@ public class Quest {
         return level;
     }
     
+    public int getDifficulty() {
+        return difficulty;
+    }
+    
     public QuestStatus getStatus() {
         return status;
     }
@@ -92,13 +98,13 @@ public class Quest {
         }
         switch (type) {
             case QuestType.MATERIAL:
-                questDesc += String.format("&{#5BBFC7}交付 %s x%d", materialName, requiredAmount);
+                questDesc += String.format("&{#5BBFC7}交付 %s &7x%d", materialName, requiredAmount);
                 break;
             case QuestType.KILL:
-                questDesc += String.format("&{#C7625B}击杀 %s x%d", materialName, requiredAmount);
+                questDesc += String.format("&{#C7625B}击杀 %s &7x%d", materialName, requiredAmount);
                 break;
             case QuestType.COLLECT:
-                questDesc += String.format("&{#C0C75B}采集 %s x%d", materialName, requiredAmount);
+                questDesc += String.format("&{#C0C75B}采集 %s &7x%d", materialName, requiredAmount);
                 break;
             default:
                 break;
@@ -140,7 +146,7 @@ public class Quest {
      */
     public Quest withProgress(int newAmount) {
         return new Quest(questId, playerId, type, releaseMethod, materialKey, materialName,
-                requiredAmount, newAmount, startTime, timeLimit, level, status);
+                requiredAmount, newAmount, startTime, timeLimit, level, difficulty, status);
     }
 }
 

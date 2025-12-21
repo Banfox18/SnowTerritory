@@ -4,6 +4,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import top.arctain.snowTerritory.quest.config.QuestConfigManager;
 import top.arctain.snowTerritory.quest.data.Quest;
+import top.arctain.snowTerritory.quest.data.QuestDatabaseDao;
 import top.arctain.snowTerritory.quest.data.QuestReleaseMethod;
 import top.arctain.snowTerritory.quest.data.QuestStatus;
 import top.arctain.snowTerritory.quest.data.QuestType;
@@ -20,18 +21,22 @@ public class MaterialQuestGenerator implements QuestGenerator {
     private static final int DEFAULT_MAX_AMOUNT = 256;
     private static final int DEFAULT_MATERIAL_LEVEL = 1;
     private static final long DEFAULT_TIME_LIMIT = 3600000L;
+    private static final int BOUNTY_FIXED_DIFFICULTY = 16; // 悬赏任务固定难度
     
     private final QuestConfigManager configManager;
+    private final QuestDatabaseDao databaseDao;
     private final Random random;
     
-    public MaterialQuestGenerator(QuestConfigManager configManager) {
+    public MaterialQuestGenerator(QuestConfigManager configManager, QuestDatabaseDao databaseDao) {
         this.configManager = configManager;
+        this.databaseDao = databaseDao;
         this.random = new Random();
     }
     
     // 用于测试的构造函数
-    MaterialQuestGenerator(QuestConfigManager configManager, Random random) {
+    MaterialQuestGenerator(QuestConfigManager configManager, QuestDatabaseDao databaseDao, Random random) {
         this.configManager = configManager;
+        this.databaseDao = databaseDao;
         this.random = random;
     }
     
@@ -53,14 +58,36 @@ public class MaterialQuestGenerator implements QuestGenerator {
             return null;
         }
         
-        List<MaterialEntry> materials = collectMaterials(materialsSection);
+        // 获取玩家等级上限（如果是普通任务）
+        int maxMaterialLevel = 1;
+        if (playerId != null && releaseMethod == QuestReleaseMethod.NORMAL) {
+            maxMaterialLevel = databaseDao.getMaxMaterialLevel(playerId);
+        }
+        
+        // 收集材料，过滤掉超过玩家等级上限的材料
+        List<MaterialEntry> materials = collectMaterials(materialsSection, maxMaterialLevel);
         if (materials.isEmpty()) {
             return null;
         }
         
         MaterialEntry selected = materials.get(random.nextInt(materials.size()));
+        
+        // 先随机生成需求数量
         int requiredAmount = selected.min + random.nextInt(selected.max - selected.min + 1);
-        int level = QuestUtils.calculateQuestLevel(selected.materialLevel, requiredAmount);
+        
+        // 计算难度
+        int difficulty;
+        if (releaseMethod == QuestReleaseMethod.BOUNTY) {
+            // 悬赏任务固定难度16
+            difficulty = BOUNTY_FIXED_DIFFICULTY;
+        } else {
+            // 普通任务根据数量计算难度
+            difficulty = QuestUtils.calculateDifficulty(requiredAmount, selected.min, selected.max);
+        }
+        
+        // 任务等级 = 材料等级（从配置读取）
+        int level = selected.materialLevel;
+        
         long timeLimit = tasksMaterial.getLong("material.default-time-limit", DEFAULT_TIME_LIMIT);
 
         // 从 key (TYPE:NAME) 中解析出 type 和 name，然后获取 MMOItem 的展示名称
@@ -78,6 +105,7 @@ public class MaterialQuestGenerator implements QuestGenerator {
                 System.currentTimeMillis(),
                 timeLimit,
                 level,
+                difficulty,
                 QuestStatus.ACTIVE
         );
     }
@@ -87,7 +115,7 @@ public class MaterialQuestGenerator implements QuestGenerator {
         return type == QuestType.MATERIAL;
     }
     
-    private List<MaterialEntry> collectMaterials(ConfigurationSection materialsSection) {
+    private List<MaterialEntry> collectMaterials(ConfigurationSection materialsSection, int maxMaterialLevel) {
         List<MaterialEntry> materials = new ArrayList<>();
         
         for (String type : materialsSection.getKeys(false)) {
@@ -98,7 +126,12 @@ public class MaterialQuestGenerator implements QuestGenerator {
             
             for (String name : typeSection.getKeys(false)) {
                 ConfigurationSection itemSection = typeSection.getConfigurationSection(name);
-                materials.add(createMaterialEntry(type, name, itemSection));
+                MaterialEntry entry = createMaterialEntry(type, name, itemSection);
+                
+                // 过滤：只选择material-level <= 玩家等级上限的材料
+                if (entry.materialLevel <= maxMaterialLevel) {
+                    materials.add(entry);
+                }
             }
         }
         
